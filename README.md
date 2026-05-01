@@ -11,6 +11,7 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 | `infrastructure/api-gateway` | Spring Boot (reactive) | 8080 | Routing, CORS, JWT validation, correlation IDs |
 | `services/user-service` | Spring Boot | 8081 | JWT auth, BCrypt, PostgreSQL |
 | `services/product-service` | Spring Boot | 8082 | Catalog, pagination, Specification, admin CRUD |
+| `services/cart-service` | Spring Boot | 8083 | In-memory cart, Feign client to product-service with Resilience4j |
 | `shared/common` | Library JAR | — | Response envelopes, exception model, correlation filters |
 
 ## Prerequisites
@@ -33,6 +34,7 @@ docker compose up -d postgres
 ./mvnw -pl infrastructure/discovery-server spring-boot:run
 ./mvnw -pl services/user-service spring-boot:run
 ./mvnw -pl services/product-service spring-boot:run
+./mvnw -pl services/cart-service spring-boot:run
 ./mvnw -pl infrastructure/api-gateway spring-boot:run
 ```
 
@@ -53,6 +55,15 @@ LOGIN=$(curl -s -X POST http://localhost:8080/api/auth/login \
 ACCESS=$(echo "$LOGIN" | jq -r '.data.accessToken')
 
 curl http://localhost:8080/api/users/me -H "Authorization: Bearer $ACCESS"
+
+# Add to cart (requires Bearer)
+curl -X POST http://localhost:8080/api/cart/items \
+  -H "Authorization: Bearer $ACCESS" \
+  -H "Content-Type: application/json" \
+  -d '{"productId":1,"quantity":2}'
+
+# Get current user's cart
+curl http://localhost:8080/api/cart -H "Authorization: Bearer $ACCESS"
 ```
 
 ## Profiles
@@ -70,8 +81,8 @@ curl http://localhost:8080/api/users/me -H "Authorization: Bearer $ACCESS"
 | 0 | Microservice Foundation | ✅ |
 | 1 | User Service + JWT auth + Swagger | ✅ |
 | 2 | Product Service (PostgreSQL, pagination) | ✅ |
-| 3 | Inter-service communication (Feign, Resilience4j) | upcoming |
-| 4 | Cart Service (Redis) | upcoming |
+| 3 | Inter-service communication (Feign, Resilience4j) — Cart Service in-memory | ✅ |
+| 4 | Cart Service Redis backend (swap InMemoryCartStore → RedisCartStore) | upcoming |
 | 5 | Order + Inventory + Payment (Saga, Iyzico) | upcoming |
 | 6 | Notification Service (RabbitMQ) | upcoming |
 | 7 | Event bus (Kafka, Outbox pattern) | upcoming |
