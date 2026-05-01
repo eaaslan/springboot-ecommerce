@@ -11,7 +11,7 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 | `infrastructure/api-gateway` | Spring Boot (reactive) | 8080 | Routing, CORS, JWT validation, correlation IDs |
 | `services/user-service` | Spring Boot | 8081 | JWT auth, BCrypt, PostgreSQL |
 | `services/product-service` | Spring Boot | 8082 | Catalog, pagination, Specification, admin CRUD |
-| `services/cart-service` | Spring Boot | 8083 | In-memory cart, Feign client to product-service with Resilience4j |
+| `services/cart-service` | Spring Boot | 8083 | Cart with Redis backend (in-memory under `test` profile), Feign + Resilience4j |
 | `shared/common` | Library JAR | — | Response envelopes, exception model, correlation filters |
 
 ## Prerequisites
@@ -29,7 +29,7 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 ## Run
 
 ```bash
-docker compose up -d postgres
+docker compose up -d postgres redis
 ./mvnw -pl infrastructure/config-server spring-boot:run
 ./mvnw -pl infrastructure/discovery-server spring-boot:run
 ./mvnw -pl services/user-service spring-boot:run
@@ -82,7 +82,7 @@ curl http://localhost:8080/api/cart -H "Authorization: Bearer $ACCESS"
 | 1 | User Service + JWT auth + Swagger | ✅ |
 | 2 | Product Service (PostgreSQL, pagination) | ✅ |
 | 3 | Inter-service communication (Feign, Resilience4j) — Cart Service in-memory | ✅ |
-| 4 | Cart Service Redis backend (swap InMemoryCartStore → RedisCartStore) | upcoming |
+| 4 | Cart Service Redis backend (profile-based store, 30-day TTL) | ✅ |
 | 5 | Order + Inventory + Payment (Saga, Iyzico) | upcoming |
 | 6 | Notification Service (RabbitMQ) | upcoming |
 | 7 | Event bus (Kafka, Outbox pattern) | upcoming |
