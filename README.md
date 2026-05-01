@@ -69,7 +69,7 @@ curl http://localhost:8080/api/users/me -H "Authorization: Bearer $ACCESS"
 |---|---|---|
 | 0 | Microservice Foundation | ✅ |
 | 1 | User Service + JWT auth + Swagger | ✅ |
-| 2 | Product Service (PostgreSQL, pagination) | upcoming |
+| 2 | Product Service (PostgreSQL, pagination) | ✅ |
 | 3 | Inter-service communication (Feign, Resilience4j) | upcoming |
 | 4 | Cart Service (Redis) | upcoming |
 | 5 | Order + Inventory + Payment (Saga, Iyzico) | upcoming |
