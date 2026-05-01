@@ -25,6 +25,7 @@
         <module>infrastructure/api-gateway</module>
         <module>services/user-service</module>
         <module>services/product-service</module>
+        <module>services/cart-service</module>
     </modules>
 
     <properties>
