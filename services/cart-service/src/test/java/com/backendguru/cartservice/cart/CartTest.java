@@ -71,16 +71,14 @@ class CartTest {
 
   @Test
   void updateQuantityZeroRemovesItem() {
-    var cart =
-        Cart.empty(1L).upsertItem(new CartItem(10L, "A", new BigDecimal("1.00"), "TRY", 5));
+    var cart = Cart.empty(1L).upsertItem(new CartItem(10L, "A", new BigDecimal("1.00"), "TRY", 5));
     var updated = cart.updateQuantity(10L, 0);
     assertThat(updated.items()).isEmpty();
   }
 
   @Test
   void updateQuantityChangesQuantityWhenPositive() {
-    var cart =
-        Cart.empty(1L).upsertItem(new CartItem(10L, "A", new BigDecimal("1.00"), "TRY", 5));
+    var cart = Cart.empty(1L).upsertItem(new CartItem(10L, "A", new BigDecimal("1.00"), "TRY", 5));
     var updated = cart.updateQuantity(10L, 7);
     assertThat(updated.items().get(0).quantity()).isEqualTo(7);
   }

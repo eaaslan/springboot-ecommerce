@@ -2,6 +2,16 @@ server:
   port: 8083
 
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6380
+      timeout: 2s
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 0
   cloud:
     openfeign:
       circuitbreaker:

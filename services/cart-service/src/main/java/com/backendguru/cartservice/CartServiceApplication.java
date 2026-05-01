@@ -7,8 +7,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @EnableDiscoveryClient
 @EnableFeignClients
-@SpringBootApplication(
-    scanBasePackages = {"com.backendguru.cartservice", "com.backendguru.common"})
+@SpringBootApplication(scanBasePackages = {"com.backendguru.cartservice", "com.backendguru.common"})
 public class CartServiceApplication {
 
   public static void main(String[] args) {

@@ -39,11 +39,7 @@ public class CartService {
             .get(userId)
             .upsertItem(
                 new CartItem(
-                    snap.id(),
-                    snap.name(),
-                    snap.priceAmount(),
-                    snap.priceCurrency(),
-                    quantity));
+                    snap.id(), snap.name(), snap.priceAmount(), snap.priceCurrency(), quantity));
     return store.save(updated);
   }
 

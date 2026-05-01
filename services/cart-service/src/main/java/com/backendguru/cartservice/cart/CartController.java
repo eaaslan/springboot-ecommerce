@@ -43,8 +43,7 @@ public class CartController {
       @PathVariable Long productId,
       @Valid @RequestBody UpdateItemRequest req) {
     return ApiResponse.success(
-        CartResponse.from(
-            service.updateQuantity(currentUserId(auth), productId, req.quantity())));
+        CartResponse.from(service.updateQuantity(currentUserId(auth), productId, req.quantity())));
   }
 
   @DeleteMapping("/items/{productId}")
