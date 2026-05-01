@@ -68,7 +68,7 @@ curl http://localhost:8080/api/users/me -H "Authorization: Bearer $ACCESS"
 | Phase | Theme | Status |
 |---|---|---|
 | 0 | Microservice Foundation | ✅ |
-| 1 | User Service + JWT auth + Swagger | upcoming |
+| 1 | User Service + JWT auth + Swagger | ✅ |
 | 2 | Product Service (PostgreSQL, pagination) | upcoming |
 | 3 | Inter-service communication (Feign, Resilience4j) | upcoming |
 | 4 | Cart Service (Redis) | upcoming |
