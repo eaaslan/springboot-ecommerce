@@ -1,0 +1,20 @@
+server:
+  port: 8088
+
+spring:
+  ai:
+    mcp:
+      server:
+        name: ecommerce-recommendation-mcp
+        version: 1.0.0
+        type: SYNC
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,refresh,prometheus

@@ -29,6 +29,14 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/api/orders/**
+        - id: recommendation-service
+          uri: lb://recommendation-service
+          predicates:
+            - Path=/api/recommendations/**
+        - id: recommendation-mcp
+          uri: lb://recommendation-service
+          predicates:
+            - Path=/mcp/**
 
 eureka:
   client:

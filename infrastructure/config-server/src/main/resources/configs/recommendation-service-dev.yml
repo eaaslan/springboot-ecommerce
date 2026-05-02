@@ -1,0 +1,4 @@
+logging:
+  level:
+    com.backendguru.recommendationservice: DEBUG
+    org.springframework.ai: INFO
