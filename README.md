@@ -2,6 +2,10 @@
 
 Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover backend interview topics: persistence, caching, async messaging, observability, distributed transactions, and AI/MCP integration.
 
+**Status: 12/12 phases complete** ✅ — 14 Maven modules, 12 deployable services, ~80 tests, full CI/CD via GitHub Actions, ready to deploy on Oracle Cloud Ampere A1 free-tier (4 OCPU + 24 GB RAM ARM64).
+
+> **Production deployment:** see [`docs/production-hardening.md`](docs/production-hardening.md) for the full operator checklist (secrets, TLS, JWT rotation, dependency scanning, Oracle Cloud walkthrough, backup, observability rules, runbooks).
+
 ## Module Layout
 
 | Module | Type | Port | Role |
@@ -128,6 +132,39 @@ curl 'http://localhost:8080/api/catalog/products/search?q=wireless'
 curl -N 'http://localhost:8080/api/catalog/products/stream?intervalSeconds=2'
 ```
 
+## Deploy (Production-like)
+
+### Build images locally (Jib, no Dockerfile)
+
+```bash
+# Build one service into local Docker daemon
+mvn -DskipTests -pl services/order-service compile jib:dockerBuild
+
+# Build all images and push to a registry (CI does this)
+mvn -DskipTests -Djib.to.auth.username=$USER -Djib.to.auth.password=$TOKEN compile jib:build
+```
+
+### Run the production-like stack from GHCR
+
+```bash
+# Once CD has pushed images to ghcr.io/eaaslan/ecommerce-*:latest
+docker login ghcr.io -u <your-github-user> -p <PAT-with-read:packages>
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### CI/CD (GitHub Actions)
+
+- `.github/workflows/ci.yml` — every push/PR runs `mvn verify` (Spotless gate included)
+- `.github/workflows/cd.yml` — main branch builds + pushes images to GHCR via Jib (uses `GITHUB_TOKEN`, no PAT needed)
+
+### Slack notifications (opt-in)
+
+```bash
+SLACK_ENABLED=true SLACK_WEBHOOK_URL=https://hooks.slack.com/services/... \
+  docker compose -f docker-compose.prod.yml up -d notification-service
+# Now order CONFIRMED events post to your Slack channel.
+```
+
 ## Profiles
 
 | Profile | Logging | Service URLs |
@@ -152,4 +189,4 @@ curl -N 'http://localhost:8080/api/catalog/products/stream?intervalSeconds=2'
 | 9 | Recommendation Service + MCP AI Server (Spring AI, content-based scoring) | ✅ |
 | 10 | Reactive layer (WebFlux + R2DBC + SSE — `catalog-stream-service`) | ✅ |
 | 11 | Performance + production-readiness (Idempotency-Key, Caffeine cache, gateway rate limit, graceful shutdown, K8s probes) | ✅ |
-| 12 | Production deployment (Oracle Cloud Ampere A1, Jib, Slack) | upcoming |
+| 12 | Production deployment (Jib multi-arch, GitHub Actions CI/CD → GHCR, docker-compose.prod, Slack webhook, Oracle Cloud walkthrough) | ✅ |
