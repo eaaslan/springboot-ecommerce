@@ -20,3 +20,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  cache:
+    type: caffeine
+    cache-names: productById,productPage
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=5m,recordStats

@@ -11,6 +11,9 @@ import com.backendguru.productservice.catalog.dto.ProductResponse;
 import com.backendguru.productservice.catalog.dto.ProductUpdateRequest;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,7 @@ public class ProductService {
     return PageResponse.of(productRepository.findAll(spec, pageable).map(mapper::toResponse));
   }
 
+  @Cacheable(cacheNames = "productById", key = "#id")
   @Transactional(readOnly = true)
   public ProductResponse getById(Long id) {
     Product p =
@@ -53,6 +57,11 @@ public class ProductService {
     return categoryRepository.findAll().stream().map(mapper::toCategoryResponse).toList();
   }
 
+  @Caching(
+      evict = {
+        @CacheEvict(cacheNames = "productById", allEntries = true),
+        @CacheEvict(cacheNames = "productPage", allEntries = true)
+      })
   @Transactional
   public ProductResponse create(ProductCreateRequest req) {
     if (productRepository.findBySku(req.sku()).isPresent()) {
@@ -78,6 +87,11 @@ public class ProductService {
     return mapper.toResponse(productRepository.save(p));
   }
 
+  @Caching(
+      evict = {
+        @CacheEvict(cacheNames = "productById", key = "#id"),
+        @CacheEvict(cacheNames = "productPage", allEntries = true)
+      })
   @Transactional
   public ProductResponse update(Long id, ProductUpdateRequest req) {
     Product p =
@@ -103,6 +117,11 @@ public class ProductService {
     return mapper.toResponse(p);
   }
 
+  @Caching(
+      evict = {
+        @CacheEvict(cacheNames = "productById", key = "#id"),
+        @CacheEvict(cacheNames = "productPage", allEntries = true)
+      })
   @Transactional
   public void softDelete(Long id) {
     Product p =
