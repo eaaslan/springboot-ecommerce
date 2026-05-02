@@ -29,12 +29,21 @@ spring:
     port: ${RABBIT_PORT:5672}
     username: ${RABBIT_USER:guest}
     password: ${RABBIT_PASS:guest}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      acks: all
 
 app:
   rabbit:
     exchange: order.events.exchange
     routing-key:
       order-confirmed: order.confirmed
+  kafka:
+    topics:
+      order-confirmed: order.confirmed
+  outbox:
+    poll-interval-ms: 1000
 
 resilience4j:
   circuitbreaker:

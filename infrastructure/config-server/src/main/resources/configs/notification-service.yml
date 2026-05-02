@@ -25,6 +25,12 @@ spring:
     port: ${RABBIT_PORT:5672}
     username: ${RABBIT_USER:guest}
     password: ${RABBIT_PASS:guest}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
     listener:
       simple:
         acknowledge-mode: auto
@@ -43,6 +49,9 @@ app:
     queue: notification.order-confirmed.queue
     dlq: notification.order-confirmed.queue.dlq
     routing-key: order.confirmed
+  kafka:
+    topics:
+      order-confirmed: order.confirmed
 
 management:
   endpoints:
