@@ -85,6 +85,20 @@ curl -X POST http://localhost:8080/api/orders \
 
 # Use card 4111-1111-1111-1115 to force a payment decline (compensation kicks in)
 
+# Idempotency-Key replay (Phase 11): same UUID + same payload = same response, no double-charge
+KEY=$(uuidgen)
+curl -X POST http://localhost:8080/api/orders -H "Authorization: Bearer $ACCESS" \
+  -H "Idempotency-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"card":{"holderName":"Alice","number":"4111111111111111","expireMonth":"12","expireYear":"2030","cvc":"123"}}'
+# Re-running with same KEY returns the cached response (verify same orderId)
+
+# Rate limiting: rapid-fire 200 reqs → some 429 Too Many Requests
+for i in {1..200}; do curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/api/products; done | sort | uniq -c
+
+# Liveness vs readiness probes (Phase 11)
+curl http://localhost:8086/actuator/health/liveness
+curl http://localhost:8086/actuator/health/readiness
+
 # Outbox pattern: order-service writes outbox_events row in same TX as CONFIRMED.
 # Scheduled OutboxRelay (every 1s) publishes PENDING rows to Kafka topic `order.confirmed`.
 # notification-service consumes both AMQP and Kafka — idempotent processed_events table dedups.
@@ -137,5 +151,5 @@ curl -N 'http://localhost:8080/api/catalog/products/stream?intervalSeconds=2'
 | 8 | Observability (Prometheus + Grafana + Zipkin, Micrometer + OTel, RED metrics, business counters) | ✅ |
 | 9 | Recommendation Service + MCP AI Server (Spring AI, content-based scoring) | ✅ |
 | 10 | Reactive layer (WebFlux + R2DBC + SSE — `catalog-stream-service`) | ✅ |
-| 11 | Performance + production-readiness | upcoming |
+| 11 | Performance + production-readiness (Idempotency-Key, Caffeine cache, gateway rate limit, graceful shutdown, K8s probes) | ✅ |
 | 12 | Production deployment (Oracle Cloud Ampere A1, Jib, Slack) | upcoming |
