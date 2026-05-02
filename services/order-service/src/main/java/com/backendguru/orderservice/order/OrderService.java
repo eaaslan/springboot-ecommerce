@@ -9,6 +9,7 @@ import com.backendguru.orderservice.client.dto.CartSnapshot;
 import com.backendguru.orderservice.client.dto.ChargeRequest;
 import com.backendguru.orderservice.client.dto.PaymentSnapshot;
 import com.backendguru.orderservice.client.dto.ReservationSnapshot;
+import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
 import com.backendguru.orderservice.exception.PaymentFailedException;
 import com.backendguru.orderservice.exception.SagaException;
@@ -38,6 +39,7 @@ public class OrderService {
   private final CartClient cartClient;
   private final InventoryClient inventoryClient;
   private final PaymentClient paymentClient;
+  private final OrderEventPublisher eventPublisher;
 
   public OrderResponse placeOrder(Long userId, PlaceOrderRequest req) {
     // 1. Fetch cart
@@ -120,6 +122,9 @@ public class OrderService {
       order.setStatus(OrderStatus.CONFIRMED);
       orderRepository.save(order);
       log.info("Order {} CONFIRMED", order.getId());
+
+      // 6b. Publish OrderConfirmedEvent (best-effort — Outbox pattern is Phase 7)
+      eventPublisher.publishOrderConfirmed(order);
 
       // 7. Clear cart (best-effort; fallback logs and continues)
       try {

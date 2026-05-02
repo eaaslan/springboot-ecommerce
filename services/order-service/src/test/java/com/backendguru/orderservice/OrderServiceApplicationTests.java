@@ -18,13 +18,15 @@ import org.springframework.test.context.TestPropertySource;
       "eureka.client.enabled=false",
       "spring.cloud.discovery.enabled=false",
       "spring.jpa.hibernate.ddl-auto=create-drop",
-      "spring.flyway.enabled=false"
+      "spring.flyway.enabled=false",
+      "spring.rabbitmq.listener.simple.auto-startup=false"
     })
 class OrderServiceApplicationTests {
 
   @MockBean CartClient cartClient;
   @MockBean InventoryClient inventoryClient;
   @MockBean PaymentClient paymentClient;
+  @MockBean org.springframework.amqp.rabbit.connection.ConnectionFactory amqpConnectionFactory;
 
   @Test
   void contextLoads() {}

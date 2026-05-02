@@ -22,6 +22,7 @@ import com.backendguru.orderservice.client.dto.CartSnapshot.CartItemSnapshot;
 import com.backendguru.orderservice.client.dto.ChargeRequest.CardDetails;
 import com.backendguru.orderservice.client.dto.PaymentSnapshot;
 import com.backendguru.orderservice.client.dto.ReservationSnapshot;
+import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
 import com.backendguru.orderservice.exception.PaymentFailedException;
 import com.backendguru.orderservice.exception.SagaException;
@@ -44,6 +45,7 @@ class OrderServiceTest {
   @Mock CartClient cartClient;
   @Mock InventoryClient inventoryClient;
   @Mock PaymentClient paymentClient;
+  @Mock OrderEventPublisher eventPublisher;
 
   @InjectMocks OrderService orderService;
 
@@ -121,6 +123,7 @@ class OrderServiceTest {
     verify(inventoryClient).commit(502L);
     verify(paymentClient).charge(any());
     verify(cartClient).clearCart(String.valueOf(USER_ID));
+    verify(eventPublisher).publishOrderConfirmed(any(Order.class));
     verify(inventoryClient, never()).release(anyLong());
     verify(paymentClient, never()).refund(anyLong());
   }
