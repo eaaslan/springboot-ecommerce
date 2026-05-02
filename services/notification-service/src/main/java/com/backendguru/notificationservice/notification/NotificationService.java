@@ -17,14 +17,17 @@ public class NotificationService {
   private final NotificationRepository notificationRepo;
   private final ProcessedEventRepository processedRepo;
   private final MeterRegistry meterRegistry;
+  private final SlackNotifier slackNotifier;
 
   public NotificationService(
       NotificationRepository notificationRepo,
       ProcessedEventRepository processedRepo,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      SlackNotifier slackNotifier) {
     this.notificationRepo = notificationRepo;
     this.processedRepo = processedRepo;
     this.meterRegistry = meterRegistry;
+    this.slackNotifier = slackNotifier;
   }
 
   /**
@@ -61,12 +64,16 @@ public class NotificationService {
             .payload(payload)
             .build();
     notificationRepo.save(n);
-    Counter.builder("notifications.sent").tag("channel", "EMAIL").register(meterRegistry).increment();
+    Counter.builder("notifications.sent")
+        .tag("channel", "EMAIL")
+        .register(meterRegistry)
+        .increment();
     log.info(
         "Notification SENT — eventId={} orderId={} userId={} channel=EMAIL",
         event.eventId(),
         event.orderId(),
         event.userId());
+    slackNotifier.notifyOrderConfirmed(event);
     return true;
   }
 

@@ -52,6 +52,9 @@ app:
   kafka:
     topics:
       order-confirmed: order.confirmed
+  slack:
+    enabled: ${SLACK_ENABLED:false}
+    webhook-url: ${SLACK_WEBHOOK_URL:}
 
 management:
   endpoints:

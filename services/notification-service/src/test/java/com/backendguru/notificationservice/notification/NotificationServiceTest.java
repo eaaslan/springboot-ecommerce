@@ -24,6 +24,7 @@ class NotificationServiceTest {
 
   @Mock NotificationRepository notificationRepo;
   @Mock ProcessedEventRepository processedRepo;
+  @Mock SlackNotifier slackNotifier;
 
   @org.mockito.Spy
   io.micrometer.core.instrument.MeterRegistry meterRegistry =
