@@ -1,0 +1,49 @@
+name: CD — Build & Push Images
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    name: Jib build + push to GHCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            m2-${{ runner.os }}-
+
+      - name: Compute lowercase owner
+        id: owner
+        run: echo "lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Build images and push to GHCR (Jib)
+        env:
+          JIB_USER: ${{ github.actor }}
+          JIB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_OWNER: ${{ steps.owner.outputs.lower }}
+        run: |
+          mvn -B -ntp -DskipTests \
+            -Djib.to.auth.username="$JIB_USER" \
+            -Djib.to.auth.password="$JIB_TOKEN" \
+            -Djib.to.image="ghcr.io/$IMAGE_OWNER/ecommerce-\${project.artifactId}" \
+            -Djib.to.tags="${{ github.sha }},latest" \
+            compile jib:build
