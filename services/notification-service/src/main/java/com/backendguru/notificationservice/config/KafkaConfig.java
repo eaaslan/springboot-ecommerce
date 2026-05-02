@@ -34,17 +34,10 @@ public class KafkaConfig {
     props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-    props.put(
-        ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
-    props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.backendguru.common.event");
-    props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, OrderConfirmedEvent.class.getName());
-    props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
 
     ObjectMapper om = new ObjectMapper();
     om.registerModule(new JavaTimeModule());
-    JsonDeserializer<OrderConfirmedEvent> jd = new JsonDeserializer<>(OrderConfirmedEvent.class, om);
+    JsonDeserializer<OrderConfirmedEvent> jd = new JsonDeserializer<>(OrderConfirmedEvent.class, om, false);
     jd.addTrustedPackages("com.backendguru.common.event");
     jd.setUseTypeMapperForKey(false);
 
@@ -62,6 +55,7 @@ public class KafkaConfig {
         new ConcurrentKafkaListenerContainerFactory<>();
     factory.setConsumerFactory(orderConfirmedConsumerFactory);
     factory.setConcurrency(1);
+    factory.setAutoStartup(false);
     return factory;
   }
 }
