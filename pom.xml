@@ -30,6 +30,7 @@
         <module>services/payment-service</module>
         <module>services/order-service</module>
         <module>services/notification-service</module>
+        <module>services/recommendation-service</module>
     </modules>
 
     <properties>
