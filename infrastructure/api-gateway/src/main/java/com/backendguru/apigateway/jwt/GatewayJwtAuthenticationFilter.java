@@ -44,6 +44,7 @@ public class GatewayJwtAuthenticationFilter implements WebFilter, Ordered {
     if (HttpMethod.GET.equals(exchange.getRequest().getMethod())
         && (path.startsWith("/api/products")
             || path.startsWith("/api/recommendations")
+            || path.startsWith("/api/catalog")
             || path.startsWith("/mcp"))) {
       return chain.filter(stripUserHeaders(exchange));
     }

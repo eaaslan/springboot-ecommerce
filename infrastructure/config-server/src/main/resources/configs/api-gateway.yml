@@ -37,6 +37,10 @@ spring:
           uri: lb://recommendation-service
           predicates:
             - Path=/mcp/**
+        - id: catalog-stream-service
+          uri: lb://catalog-stream-service
+          predicates:
+            - Path=/api/catalog/**
 
 eureka:
   client:
