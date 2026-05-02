@@ -42,7 +42,9 @@ public class GatewayJwtAuthenticationFilter implements WebFilter, Ordered {
       return chain.filter(exchange);
     }
     if (HttpMethod.GET.equals(exchange.getRequest().getMethod())
-        && path.startsWith("/api/products")) {
+        && (path.startsWith("/api/products")
+            || path.startsWith("/api/recommendations")
+            || path.startsWith("/mcp"))) {
       return chain.filter(stripUserHeaders(exchange));
     }
     String header = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
