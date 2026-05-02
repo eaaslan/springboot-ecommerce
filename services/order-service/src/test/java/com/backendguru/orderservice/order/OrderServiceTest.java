@@ -64,7 +64,7 @@ class OrderServiceTest {
       new CardDetails("J. Doe", "4111111111111111", "12", "2030", "123");
 
   private PlaceOrderRequest req() {
-    return new PlaceOrderRequest(GOOD_CARD);
+    return new PlaceOrderRequest(GOOD_CARD, null);
   }
 
   private CartSnapshot oneItemCart() {

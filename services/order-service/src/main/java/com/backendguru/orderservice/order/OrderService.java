@@ -9,6 +9,7 @@ import com.backendguru.orderservice.client.dto.CartSnapshot;
 import com.backendguru.orderservice.client.dto.ChargeRequest;
 import com.backendguru.orderservice.client.dto.PaymentSnapshot;
 import com.backendguru.orderservice.client.dto.ReservationSnapshot;
+import com.backendguru.orderservice.coupon.CouponService;
 import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
 import com.backendguru.orderservice.exception.PaymentFailedException;
@@ -30,8 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Saga orchestrator. Each step is its own short transaction; compensations run on failure.
  *
- * <p>Steps: 1) fetch cart, 2) persist order PENDING, 3) reserve inventory, 4) charge payment, 5)
- * commit inventory, 6) mark order CONFIRMED, 7) clear cart (best-effort).
+ * <p>Steps: 1) fetch cart, 1b) validate coupon, 2) persist order PENDING, 3) reserve inventory, 4)
+ * charge payment, 5) commit inventory, 6) mark order CONFIRMED + record coupon redemption, 7) clear
+ * cart (best-effort).
  */
 @Service
 @RequiredArgsConstructor
@@ -46,6 +48,7 @@ public class OrderService {
   private final OutboxEventRepository outboxRepository;
   private final OutboxAppender outboxAppender;
   private final OrderMetrics metrics;
+  private final CouponService couponService;
 
   public OrderResponse placeOrder(Long userId, PlaceOrderRequest req) {
     return metrics.placeOrderTimer().record(() -> placeOrderInternal(userId, req));
@@ -59,8 +62,23 @@ public class OrderService {
     }
     String currency = cart.items().get(0).priceCurrency();
 
+    // 1b. Validate coupon (if provided) BEFORE creating order — fail fast on bad code
+    BigDecimal subtotal = cart.totalAmount() == null ? BigDecimal.ZERO : cart.totalAmount();
+    BigDecimal discount = BigDecimal.ZERO;
+    String couponCode =
+        req.couponCode() == null || req.couponCode().isBlank()
+            ? null
+            : req.couponCode().trim().toUpperCase();
+    if (couponCode != null) {
+      discount = couponService.validateAndCalculate(couponCode, subtotal, userId);
+      log.info(
+          "Order coupon {} applied: discount {} on subtotal {}", couponCode, discount, subtotal);
+    }
+    BigDecimal finalTotal = subtotal.subtract(discount);
+
     // 2. Persist PENDING order
-    Order order = persistPendingOrder(userId, cart, currency);
+    Order order =
+        persistPendingOrder(userId, cart, currency, subtotal, finalTotal, couponCode, discount);
     log.info("Order {} created PENDING for user {}", order.getId(), userId);
 
     List<Long> reservationIds = new ArrayList<>();
@@ -92,7 +110,7 @@ public class OrderService {
       order = orderRepository.save(order); // persist reservation ids (rebind for next merge)
       log.info("Order {} reserved {} items", order.getId(), reservationIds.size());
 
-      // 4. Charge payment
+      // 4. Charge payment (uses discounted final total)
       PaymentSnapshot payment;
       try {
         payment =
@@ -128,9 +146,13 @@ public class OrderService {
         throw new SagaException("Inventory commit failed", ex);
       }
 
-      // 6. Mark CONFIRMED + write outbox row in the SAME transaction (atomic dual-write fix)
+      // 6. Mark CONFIRMED + record coupon redemption + write outbox row in the SAME transaction
       order.setStatus(OrderStatus.CONFIRMED);
       order = orderRepository.save(order);
+      if (order.getCouponCode() != null) {
+        couponService.recordRedemption(
+            order.getCouponCode(), userId, order.getId(), order.getDiscountAmount());
+      }
       outboxRepository.save(outboxAppender.buildOrderConfirmed(order));
       metrics.incrementPlaced(order.getCurrency());
       log.info("Order {} CONFIRMED + outbox event queued", order.getId());
@@ -189,12 +211,22 @@ public class OrderService {
   // -------------------- helpers --------------------
 
   @Transactional
-  protected Order persistPendingOrder(Long userId, CartSnapshot cart, String currency) {
+  protected Order persistPendingOrder(
+      Long userId,
+      CartSnapshot cart,
+      String currency,
+      BigDecimal subtotal,
+      BigDecimal finalTotal,
+      String couponCode,
+      BigDecimal discount) {
     Order order =
         Order.builder()
             .userId(userId)
             .status(OrderStatus.PENDING)
-            .totalAmount(cart.totalAmount())
+            .subtotalAmount(subtotal)
+            .totalAmount(finalTotal)
+            .couponCode(couponCode)
+            .discountAmount(discount == null ? BigDecimal.ZERO : discount)
             .currency(currency)
             .build();
     for (var ci : cart.items()) {

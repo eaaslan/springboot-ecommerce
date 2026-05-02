@@ -53,7 +53,8 @@ class RecommendationServiceTest {
 
   @Test
   void priceProximityIdenticalIsOne() {
-    assertThat(RecommendationService.priceProximity(BigDecimal.valueOf(100), BigDecimal.valueOf(100)))
+    assertThat(
+            RecommendationService.priceProximity(BigDecimal.valueOf(100), BigDecimal.valueOf(100)))
         .isEqualTo(1.0, within(1e-9));
   }
 

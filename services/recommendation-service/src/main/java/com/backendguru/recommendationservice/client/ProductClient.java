@@ -21,6 +21,5 @@ public interface ProductClient {
 
   @GetMapping("/api/products")
   ApiResponse<PageResponse<ProductSummary>> search(
-      @RequestParam("q") String query,
-      @RequestParam(value = "size", defaultValue = "20") int size);
+      @RequestParam("q") String query, @RequestParam(value = "size", defaultValue = "20") int size);
 }

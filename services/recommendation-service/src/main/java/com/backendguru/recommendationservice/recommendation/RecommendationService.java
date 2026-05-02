@@ -36,9 +36,7 @@ public class RecommendationService {
   public List<RecommendationItem> similarProducts(long productId, int k) {
     if (k <= 0) k = 5;
     ProductSummary target =
-        unwrap(
-            productClient.getById(productId).data(),
-            "Product " + productId + " not found");
+        unwrap(productClient.getById(productId).data(), "Product " + productId + " not found");
     List<ProductSummary> pool = fetchPool();
     Set<String> targetTokens = tokens(target.name());
     return pool.stream()

@@ -26,16 +26,14 @@ public class RecommendationController {
 
   @GetMapping("/products/{id}/similar")
   public ApiResponse<List<RecommendationItem>> similar(
-      @PathVariable("id") long productId,
-      @RequestParam(value = "k", defaultValue = "5") int k) {
+      @PathVariable("id") long productId, @RequestParam(value = "k", defaultValue = "5") int k) {
     requested("similar");
     return ApiResponse.success(service.similarProducts(productId, k));
   }
 
   @GetMapping("/users/{id}")
   public ApiResponse<List<RecommendationItem>> forUser(
-      @PathVariable("id") long userId,
-      @RequestParam(value = "k", defaultValue = "5") int k) {
+      @PathVariable("id") long userId, @RequestParam(value = "k", defaultValue = "5") int k) {
     requested("user");
     return ApiResponse.success(service.recommendForUser(userId, k));
   }

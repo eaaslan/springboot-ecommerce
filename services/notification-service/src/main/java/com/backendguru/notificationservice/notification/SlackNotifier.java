@@ -59,18 +59,23 @@ public class SlackNotifier {
             .build();
 
     try {
-      HttpResponse<String> resp =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
       if (resp.statusCode() >= 200 && resp.statusCode() < 300) {
         Counter.builder("slack.posted").register(meterRegistry).increment();
         log.debug("Slack notify ok for order {}", event.orderId());
       } else {
         Counter.builder("slack.failed").tag("reason", "non2xx").register(meterRegistry).increment();
-        log.warn("Slack notify non-2xx ({}) for order {}: {}",
-            resp.statusCode(), event.orderId(), resp.body());
+        log.warn(
+            "Slack notify non-2xx ({}) for order {}: {}",
+            resp.statusCode(),
+            event.orderId(),
+            resp.body());
       }
     } catch (Exception ex) {
-      Counter.builder("slack.failed").tag("reason", "exception").register(meterRegistry).increment();
+      Counter.builder("slack.failed")
+          .tag("reason", "exception")
+          .register(meterRegistry)
+          .increment();
       log.warn("Slack notify failed for order {}: {}", event.orderId(), ex.toString());
     }
   }
