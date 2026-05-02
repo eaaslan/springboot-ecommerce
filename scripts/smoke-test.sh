@@ -78,6 +78,7 @@ assert_status "users/me" 200 "$me_code"
 
 # ─── 3. Catalog ───────────────────────────────────────────────────────────────
 step "3. Catalog (public)"
+sleep 2  # let any prior bursts drain through the gateway rate limiter
 code=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY/api/products?page=0&size=5")
 assert_status "catalog list" 200 "$code"
 
@@ -86,6 +87,7 @@ assert_status "catalog by id" 200 "$code"
 
 # ─── 4. Cart ──────────────────────────────────────────────────────────────────
 step "4. Cart"
+sleep 1
 add=$(curl -s -w "\n%{http_code}" -H "$AUTH_HDR" -H "Content-Type: application/json" \
   -X POST -d '{"productId":1,"quantity":2}' "$GATEWAY/api/cart/items")
 add_code="${add##*$'\n'}"
@@ -97,6 +99,7 @@ if [[ "$items_count" -ge 1 ]]; then ok "cart get → $items_count item(s)"; else
 
 # ─── 5. Orders ────────────────────────────────────────────────────────────────
 step "5. Orders — happy path"
+sleep 1
 KEY=$(uuidgen 2>/dev/null || date +%s%N)
 order_resp=$(curl -s -w "\n%{http_code}" \
   -H "$AUTH_HDR" -H "Content-Type: application/json" \
@@ -146,9 +149,11 @@ fi
 
 # ─── 6. Recommendations ───────────────────────────────────────────────────────
 step "6. Recommendations (public)"
+sleep 2
 for path in "products/1/similar?k=3" "search?q=wireless&limit=5" "users/42?k=3"; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY/api/recommendations/$path")
   assert_status "recommendations /$path" 200 "$code"
+  sleep 1
 done
 
 # ─── 7. Reactive Catalog ──────────────────────────────────────────────────────
@@ -159,9 +164,14 @@ assert_status "reactive catalog list" 200 "$code"
 code=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY/api/catalog/products/search?q=wireless&limit=5")
 assert_status "reactive catalog search" 200 "$code"
 
-# SSE first-event check (timeout in 5s; expect at least one event)
-sse_lines=$(timeout 5 curl -sN "$GATEWAY/api/catalog/products/stream?intervalSeconds=1" 2>/dev/null | head -5 | wc -l | tr -d ' ' || echo 0)
-if [[ "$sse_lines" -ge 1 ]]; then ok "SSE stream emitted ≥1 line"; else info "SSE stream empty (possibly slow start)"; fi
+# SSE first-event check (timeout 5s; expect at least one event line)
+sse_lines=$( (timeout 5 curl -sN "$GATEWAY/api/catalog/products/stream?intervalSeconds=1" 2>/dev/null | head -5 || true) | wc -l | tr -d ' \n')
+sse_lines=${sse_lines:-0}
+if [ "${sse_lines}" -ge 1 ] 2>/dev/null; then
+  ok "SSE stream emitted ${sse_lines} line(s)"
+else
+  info "SSE stream empty (slow start or stream closed early)"
+fi
 
 # ─── 8. Rate limit smoke ──────────────────────────────────────────────────────
 step "8. Rate limit smoke (gateway, 200 rapid GETs)"
