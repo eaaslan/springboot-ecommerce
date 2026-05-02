@@ -6,6 +6,8 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 
 > **Production deployment:** see [`docs/production-hardening.md`](docs/production-hardening.md) for the full operator checklist (secrets, TLS, JWT rotation, dependency scanning, Oracle Cloud walkthrough, backup, observability rules, runbooks).
 
+> **Frontend:** [`eaaslan/springboot-ecommerce-frontend`](https://github.com/eaaslan/springboot-ecommerce-frontend) — React + Vite, login → catalog → cart → checkout (idempotency-key) → order history. Run `npm run dev` after `./scripts/smoke-test.sh` passes here.
+
 ## Module Layout
 
 | Module | Type | Port | Role |
