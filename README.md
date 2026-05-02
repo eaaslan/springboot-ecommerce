@@ -16,6 +16,7 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 | `services/payment-service` | Spring Boot | 8085 | Iyzico-shaped payment mock, refund support, audit ledger |
 | `services/order-service` | Spring Boot | 8086 | Saga orchestrator + Outbox publisher (atomic event write, scheduled Kafka relay) |
 | `services/notification-service` | Spring Boot | 8087 | Async notification consumer (RabbitMQ + Kafka, idempotent dedup across both transports) |
+| `services/recommendation-service` | Spring Boot | 8088 | Content-based recommender + MCP server (Spring AI) for AI agents |
 | `shared/common` | Library JAR | — | Response envelopes, exception model, correlation filters, AMQP event records |
 
 ## Prerequisites
@@ -43,6 +44,7 @@ docker compose up -d postgres redis rabbitmq kafka prometheus grafana zipkin
 ./mvnw -pl services/payment-service spring-boot:run
 ./mvnw -pl services/order-service spring-boot:run
 ./mvnw -pl services/notification-service spring-boot:run
+./mvnw -pl services/recommendation-service spring-boot:run
 ./mvnw -pl infrastructure/api-gateway spring-boot:run
 ```
 
@@ -93,6 +95,15 @@ curl -X POST http://localhost:8080/api/orders \
 # - Grafana:    http://localhost:3000  (admin/admin — provisioned dashboard "Microservices Overview")
 # - Zipkin:     http://localhost:9411  (distributed traces; gateway → services → kafka)
 # - Each service: /actuator/prometheus + /actuator/health
+
+# Recommendations (public read paths — JWT bypassed at gateway)
+curl 'http://localhost:8080/api/recommendations/products/1/similar?k=3'
+curl 'http://localhost:8080/api/recommendations/search?q=wireless&limit=5'
+
+# MCP server — wire up as Claude Desktop / Cursor / Claude Code tool
+# claude_desktop_config.json:
+# { "mcpServers": { "ecommerce": { "url": "http://localhost:8088/mcp" } } }
+# Tools auto-listed: similarProducts, recommendForUser, searchProducts
 ```
 
 ## Profiles
@@ -116,7 +127,7 @@ curl -X POST http://localhost:8080/api/orders \
 | 6 | Notification Service (RabbitMQ + DLQ + idempotent consumer) | ✅ |
 | 7 | Event bus (Kafka + Outbox pattern, idempotent producer, parallel Kafka consumer) | ✅ |
 | 8 | Observability (Prometheus + Grafana + Zipkin, Micrometer + OTel, RED metrics, business counters) | ✅ |
-| 9 | Recommendation / MCP AI Server | upcoming |
+| 9 | Recommendation Service + MCP AI Server (Spring AI, content-based scoring) | ✅ |
 | 10 | Reactive layer (WebFlux) | upcoming |
 | 11 | Performance + production-readiness | upcoming |
 | 12 | Production deployment (Oracle Cloud Ampere A1, Jib, Slack) | upcoming |
