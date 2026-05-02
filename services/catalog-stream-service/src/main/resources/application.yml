@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: catalog-stream-service
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:http://localhost:8888
+  cloud:
+    config:
+      fail-fast: false
+      retry:
+        max-attempts: 3
+        initial-interval: 1000
