@@ -1,0 +1,18 @@
+server:
+  port: 8089
+
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/productdb
+    username: product
+    password: pass
+    pool:
+      enabled: true
+      initial-size: 2
+      max-size: 20
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,refresh,prometheus
