@@ -103,7 +103,8 @@ Claude Desktop config snippet (lives in user's `claude_desktop_config.json`):
 {
   "mcpServers": {
     "ecommerce": {
-      "url": "http://localhost:8088/mcp"
+      "url": "http://localhost:8088/sse",
+      "transport": "sse"
     }
   }
 }
@@ -157,6 +158,6 @@ Custom counters:
 
 1. `mvn clean verify` succeeds for all 13 modules (recommendation-service added).
 2. `curl http://localhost:8088/api/recommendations/products/1/similar?k=3` returns ranked product list.
-3. `curl http://localhost:8088/mcp` lists tools (or `inspector`-style MCP probe shows them).
+3. `curl -N http://localhost:8088/sse` returns SSE handshake `event:endpoint data:/mcp/message` (Spring AI MCP server default endpoint, NOT `/mcp`).
 4. Through gateway: `curl http://localhost:8080/api/recommendations/products/1/similar`.
 5. Tag `phase-9-complete` pushed.

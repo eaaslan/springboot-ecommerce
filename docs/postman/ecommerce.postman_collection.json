@@ -303,12 +303,13 @@
           }
         },
         {
-          "name": "Public — MCP tools list",
+          "name": "Public — MCP SSE handshake",
           "request": {
             "method": "GET",
-            "url": { "raw": "http://localhost:8088/mcp", "host": ["http://localhost:8088"], "path": ["mcp"] }
+            "header": [{ "key": "Accept", "value": "text/event-stream" }],
+            "url": { "raw": "http://localhost:8088/sse", "host": ["http://localhost:8088"], "path": ["sse"] }
           },
-          "description": "Direct to recommendation-service. Spring AI MCP server lists available tools (similarProducts, recommendForUser, searchProducts). Wire into Claude Desktop via claude_desktop_config.json."
+          "description": "Spring AI MCP server SSE handshake (NOT JSON). Postman doesn't render SSE well — use `curl -N http://localhost:8088/sse` to see `event:endpoint data:/mcp/message`. To actually use the tools, register in Claude Desktop / Cursor / Claude Code via MCP config: claude mcp add --transport sse ecommerce http://localhost:8088/sse"
         }
       ]
     },

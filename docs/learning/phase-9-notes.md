@@ -116,27 +116,42 @@ Bizim Phase 9 = **retrieval'in deterministic kısmı**. LLM generate kısmını 
 
 ### Bizim case
 ```
-[Claude Desktop] ──HTTP/SSE──▶ http://localhost:8088/mcp
+[Claude / Cursor / IDE] ──HTTP+SSE──▶ http://localhost:8088/sse           (handshake)
+                                       └─ POST http://localhost:8088/mcp/message  (RPC)
                               │
-                              ├ tools.list  → [similarProducts, recommendForUser, searchProducts]
-                              └ tools.call  → similarProducts(productId=42, k=5)
+                              ├ tools/list  → [similarProducts, recommendForUser, searchProducts]
+                              └ tools/call  → similarProducts(productId=42, k=5)
 ```
 
 Spring AI MCP server starter `@Tool` annotated metodları otomatik wraps eder. `ToolCallbackProvider` bean'i `MethodToolCallbackProvider.builder().toolObjects(tools).build()` ile bean tanımı.
 
-### Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`)
+**Spring AI MCP server endpoint default'u `/sse` — `/mcp` DEĞİL.** İlk handshake `/sse` SSE stream'ine bağlanır, server `event:endpoint data:/mcp/message` mesajıyla RPC POST endpoint'ini bildirir.
 
+### Bağlanma yöntemleri
+
+#### Claude Code CLI (terminal)
+```bash
+claude mcp add --transport sse ecommerce http://localhost:8088/sse
+claude mcp list   # → ✓ Connected
+```
+
+#### Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json`)
 ```json
 {
   "mcpServers": {
     "ecommerce": {
-      "url": "http://localhost:8088/mcp"
+      "url": "http://localhost:8088/sse",
+      "transport": "sse"
     }
   }
 }
 ```
+Restart Claude Desktop → 🔌 ikonunda `ecommerce` görünür.
 
-Restart Claude → "ecommerce" tool'ları otomatik listede.
+#### Cursor IDE (`~/.cursor/mcp.json`)
+```json
+{ "mcpServers": { "ecommerce": { "url": "http://localhost:8088/sse" } } }
+```
 
 ### `@Tool` ve `@ToolParam`
 

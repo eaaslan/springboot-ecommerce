@@ -124,7 +124,10 @@ curl 'http://localhost:8080/api/recommendations/search?q=wireless&limit=5'
 
 # MCP server — wire up as Claude Desktop / Cursor / Claude Code tool
 # claude_desktop_config.json:
-# { "mcpServers": { "ecommerce": { "url": "http://localhost:8088/mcp" } } }
+# { "mcpServers": { "ecommerce": { "url": "http://localhost:8088/sse", "transport": "sse" } } }
+#
+# Claude Code (this CLI):
+#   claude mcp add --transport sse ecommerce http://localhost:8088/sse
 # Tools auto-listed: similarProducts, recommendForUser, searchProducts
 
 # Reactive read facade (WebFlux + R2DBC) — public read paths
