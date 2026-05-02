@@ -26,6 +26,10 @@ import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
 import com.backendguru.orderservice.exception.PaymentFailedException;
 import com.backendguru.orderservice.exception.SagaException;
+import com.backendguru.orderservice.outbox.OutboxAppender;
+import com.backendguru.orderservice.outbox.OutboxEvent;
+import com.backendguru.orderservice.outbox.OutboxEventRepository;
+import com.backendguru.orderservice.outbox.OutboxStatus;
 import com.backendguru.orderservice.order.dto.PlaceOrderRequest;
 import java.math.BigDecimal;
 import java.util.List;
@@ -46,6 +50,8 @@ class OrderServiceTest {
   @Mock InventoryClient inventoryClient;
   @Mock PaymentClient paymentClient;
   @Mock OrderEventPublisher eventPublisher;
+  @Mock OutboxEventRepository outboxRepository;
+  @Mock OutboxAppender outboxAppender;
 
   @InjectMocks OrderService orderService;
 
@@ -90,6 +96,18 @@ class OrderServiceTest {
               if (o.getId() == null) o.setId(seq.incrementAndGet());
               return o;
             });
+    org.mockito.Mockito.lenient()
+        .when(outboxAppender.buildOrderConfirmed(any(Order.class)))
+        .thenAnswer(
+            inv ->
+                OutboxEvent.builder()
+                    .eventId("evt-test")
+                    .aggregateType("ORDER")
+                    .aggregateId("100")
+                    .eventType("ORDER_CONFIRMED")
+                    .payload("{}")
+                    .status(OutboxStatus.PENDING)
+                    .build());
   }
 
   // ---------- happy path ----------
@@ -124,6 +142,8 @@ class OrderServiceTest {
     verify(paymentClient).charge(any());
     verify(cartClient).clearCart(String.valueOf(USER_ID));
     verify(eventPublisher).publishOrderConfirmed(any(Order.class));
+    verify(outboxAppender).buildOrderConfirmed(any(Order.class));
+    verify(outboxRepository).save(any(OutboxEvent.class));
     verify(inventoryClient, never()).release(anyLong());
     verify(paymentClient, never()).refund(anyLong());
   }

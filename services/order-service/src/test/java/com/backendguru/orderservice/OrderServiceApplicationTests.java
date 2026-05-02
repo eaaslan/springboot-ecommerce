@@ -19,7 +19,9 @@ import org.springframework.test.context.TestPropertySource;
       "spring.cloud.discovery.enabled=false",
       "spring.jpa.hibernate.ddl-auto=create-drop",
       "spring.flyway.enabled=false",
-      "spring.rabbitmq.listener.simple.auto-startup=false"
+      "spring.rabbitmq.listener.simple.auto-startup=false",
+      "spring.kafka.bootstrap-servers=localhost:9092",
+      "app.kafka.topics.order-confirmed=order.confirmed"
     })
 class OrderServiceApplicationTests {
 
@@ -27,6 +29,8 @@ class OrderServiceApplicationTests {
   @MockBean InventoryClient inventoryClient;
   @MockBean PaymentClient paymentClient;
   @MockBean org.springframework.amqp.rabbit.connection.ConnectionFactory amqpConnectionFactory;
+  @MockBean org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
+  @MockBean org.springframework.kafka.core.ProducerFactory<String, String> producerFactory;
 
   @Test
   void contextLoads() {}
