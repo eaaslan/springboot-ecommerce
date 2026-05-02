@@ -12,6 +12,9 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 | `services/user-service` | Spring Boot | 8081 | JWT auth, BCrypt, PostgreSQL |
 | `services/product-service` | Spring Boot | 8082 | Catalog, pagination, Specification, admin CRUD |
 | `services/cart-service` | Spring Boot | 8083 | Cart with Redis backend (in-memory under `test` profile), Feign + Resilience4j |
+| `services/inventory-service` | Spring Boot | 8084 | Stock + reservations (HELD/COMMITTED/RELEASED), optimistic locking |
+| `services/payment-service` | Spring Boot | 8085 | Iyzico-shaped payment mock, refund support, audit ledger |
+| `services/order-service` | Spring Boot | 8086 | Saga orchestrator (cart → reserve → charge → commit → confirm → clear) with compensations |
 | `shared/common` | Library JAR | — | Response envelopes, exception model, correlation filters |
 
 ## Prerequisites
@@ -35,6 +38,9 @@ docker compose up -d postgres redis
 ./mvnw -pl services/user-service spring-boot:run
 ./mvnw -pl services/product-service spring-boot:run
 ./mvnw -pl services/cart-service spring-boot:run
+./mvnw -pl services/inventory-service spring-boot:run
+./mvnw -pl services/payment-service spring-boot:run
+./mvnw -pl services/order-service spring-boot:run
 ./mvnw -pl infrastructure/api-gateway spring-boot:run
 ```
 
@@ -64,6 +70,14 @@ curl -X POST http://localhost:8080/api/cart/items \
 
 # Get current user's cart
 curl http://localhost:8080/api/cart -H "Authorization: Bearer $ACCESS"
+
+# Place order (Saga: reserve inventory → charge → commit → confirm → clear cart)
+curl -X POST http://localhost:8080/api/orders \
+  -H "Authorization: Bearer $ACCESS" \
+  -H "Content-Type: application/json" \
+  -d '{"card":{"holderName":"Alice","number":"4111111111111111","expireMonth":"12","expireYear":"2030","cvc":"123"}}'
+
+# Use card 4111-1111-1111-1115 to force a payment decline (compensation kicks in)
 ```
 
 ## Profiles
@@ -83,7 +97,7 @@ curl http://localhost:8080/api/cart -H "Authorization: Bearer $ACCESS"
 | 2 | Product Service (PostgreSQL, pagination) | ✅ |
 | 3 | Inter-service communication (Feign, Resilience4j) — Cart Service in-memory | ✅ |
 | 4 | Cart Service Redis backend (profile-based store, 30-day TTL) | ✅ |
-| 5 | Order + Inventory + Payment (Saga, Iyzico) | upcoming |
+| 5 | Order + Inventory + Payment (Saga, Iyzico mock) | ✅ |
 | 6 | Notification Service (RabbitMQ) | upcoming |
 | 7 | Event bus (Kafka, Outbox pattern) | upcoming |
 | 8 | Observability (Prometheus, Grafana, Zipkin) | upcoming |
