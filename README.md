@@ -33,7 +33,7 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 ## Run
 
 ```bash
-docker compose up -d postgres redis rabbitmq kafka
+docker compose up -d postgres redis rabbitmq kafka prometheus grafana zipkin
 ./mvnw -pl infrastructure/config-server spring-boot:run
 ./mvnw -pl infrastructure/discovery-server spring-boot:run
 ./mvnw -pl services/user-service spring-boot:run
@@ -87,6 +87,12 @@ curl -X POST http://localhost:8080/api/orders \
 # Watch its log: "Notification SENT — eventId=... orderId=... channel=EMAIL"
 # RabbitMQ management UI: http://localhost:15672 (guest/guest)
 # Kafka broker: localhost:9092 (KRaft single-node)
+
+# Observability stack:
+# - Prometheus: http://localhost:9090  (targets page shows all services UP)
+# - Grafana:    http://localhost:3000  (admin/admin — provisioned dashboard "Microservices Overview")
+# - Zipkin:     http://localhost:9411  (distributed traces; gateway → services → kafka)
+# - Each service: /actuator/prometheus + /actuator/health
 ```
 
 ## Profiles
@@ -109,7 +115,7 @@ curl -X POST http://localhost:8080/api/orders \
 | 5 | Order + Inventory + Payment (Saga, Iyzico mock) | ✅ |
 | 6 | Notification Service (RabbitMQ + DLQ + idempotent consumer) | ✅ |
 | 7 | Event bus (Kafka + Outbox pattern, idempotent producer, parallel Kafka consumer) | ✅ |
-| 8 | Observability (Prometheus, Grafana, Zipkin) | upcoming |
+| 8 | Observability (Prometheus + Grafana + Zipkin, Micrometer + OTel, RED metrics, business counters) | ✅ |
 | 9 | Recommendation / MCP AI Server | upcoming |
 | 10 | Reactive layer (WebFlux) | upcoming |
 | 11 | Performance + production-readiness | upcoming |
