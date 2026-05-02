@@ -11,6 +11,8 @@ import com.backendguru.orderservice.client.dto.PaymentSnapshot;
 import com.backendguru.orderservice.client.dto.ReservationSnapshot;
 import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
+import com.backendguru.orderservice.outbox.OutboxAppender;
+import com.backendguru.orderservice.outbox.OutboxEventRepository;
 import com.backendguru.orderservice.exception.PaymentFailedException;
 import com.backendguru.orderservice.exception.SagaException;
 import com.backendguru.orderservice.order.dto.OrderResponse;
@@ -40,6 +42,8 @@ public class OrderService {
   private final InventoryClient inventoryClient;
   private final PaymentClient paymentClient;
   private final OrderEventPublisher eventPublisher;
+  private final OutboxEventRepository outboxRepository;
+  private final OutboxAppender outboxAppender;
 
   public OrderResponse placeOrder(Long userId, PlaceOrderRequest req) {
     // 1. Fetch cart
@@ -118,12 +122,13 @@ public class OrderService {
         throw new SagaException("Inventory commit failed", ex);
       }
 
-      // 6. Mark CONFIRMED
+      // 6. Mark CONFIRMED + write outbox row in the SAME transaction (atomic dual-write fix)
       order.setStatus(OrderStatus.CONFIRMED);
       orderRepository.save(order);
-      log.info("Order {} CONFIRMED", order.getId());
+      outboxRepository.save(outboxAppender.buildOrderConfirmed(order));
+      log.info("Order {} CONFIRMED + outbox event queued", order.getId());
 
-      // 6b. Publish OrderConfirmedEvent (best-effort — Outbox pattern is Phase 7)
+      // 6b. Direct AMQP publish (best-effort, low-latency path for Phase 6 consumer)
       eventPublisher.publishOrderConfirmed(order);
 
       // 7. Clear cart (best-effort; fallback logs and continues)
