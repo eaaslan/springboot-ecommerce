@@ -55,8 +55,7 @@ class OrderServiceTest {
   @Mock OutboxEventRepository outboxRepository;
   @Mock OutboxAppender outboxAppender;
 
-  @org.mockito.Spy
-  OrderMetrics metrics = new OrderMetrics(new SimpleMeterRegistry());
+  @org.mockito.Spy OrderMetrics metrics = new OrderMetrics(new SimpleMeterRegistry());
 
   @InjectMocks OrderService orderService;
 
