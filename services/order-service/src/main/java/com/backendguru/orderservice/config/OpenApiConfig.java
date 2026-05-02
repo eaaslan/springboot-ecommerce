@@ -10,7 +10,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
-    info = @Info(title = "Order Service API", version = "v1", description = "Order saga orchestration"),
+    info =
+        @Info(
+            title = "Order Service API",
+            version = "v1",
+            description = "Order saga orchestration"),
     servers = {@Server(url = "/", description = "Default")},
     security = {@SecurityRequirement(name = "bearerAuth")})
 @SecurityScheme(

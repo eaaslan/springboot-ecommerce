@@ -50,12 +50,14 @@ public class PaymentService {
     Payment p =
         repository
             .findById(paymentId)
-            .orElseThrow(() -> new ResourceNotFoundException("Payment " + paymentId + " not found"));
+            .orElseThrow(
+                () -> new ResourceNotFoundException("Payment " + paymentId + " not found"));
     if (p.getStatus() == PaymentStatus.REFUNDED) {
       return PaymentResponse.from(p); // idempotent
     }
     if (p.getStatus() != PaymentStatus.AUTHORIZED) {
-      throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Cannot refund payment in status " + p.getStatus()) {};
+      throw new BusinessException(
+          ErrorCode.VALIDATION_FAILED, "Cannot refund payment in status " + p.getStatus()) {};
     }
     p.setStatus(PaymentStatus.REFUNDED);
     return PaymentResponse.from(p);

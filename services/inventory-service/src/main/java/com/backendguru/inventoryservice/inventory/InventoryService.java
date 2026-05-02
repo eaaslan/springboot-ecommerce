@@ -28,8 +28,13 @@ public class InventoryService {
                         "Inventory not found for product " + req.productId()));
     if (item.getAvailableQty() < req.quantity()) {
       throw new InsufficientStockException(
-          "Insufficient stock for product " + req.productId() + " (available "
-              + item.getAvailableQty() + ", requested " + req.quantity() + ")");
+          "Insufficient stock for product "
+              + req.productId()
+              + " (available "
+              + item.getAvailableQty()
+              + ", requested "
+              + req.quantity()
+              + ")");
     }
     item.setAvailableQty(item.getAvailableQty() - req.quantity());
     item.setReservedQty(item.getReservedQty() + req.quantity());

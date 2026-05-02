@@ -72,7 +72,11 @@ public class Order {
   @Column(nullable = false)
   private long version;
 
-  @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+  @OneToMany(
+      mappedBy = "order",
+      cascade = CascadeType.ALL,
+      orphanRemoval = true,
+      fetch = FetchType.LAZY)
   @Builder.Default
   private List<OrderItem> items = new ArrayList<>();
 

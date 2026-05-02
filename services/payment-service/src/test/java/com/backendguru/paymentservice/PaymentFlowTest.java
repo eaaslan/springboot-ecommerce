@@ -59,8 +59,7 @@ class PaymentFlowTest {
   void chargeWithFailCardThrows() {
     assertThatThrownBy(
             () ->
-                service.charge(
-                    new ChargeRequest(101L, new BigDecimal("50.00"), "TRY", failCard())))
+                service.charge(new ChargeRequest(101L, new BigDecimal("50.00"), "TRY", failCard())))
         .isInstanceOf(PaymentService.PaymentDeclinedException.class)
         .hasMessageContaining("declined");
     // Audit trail of failed payments is a nice-to-have; the rollback of the

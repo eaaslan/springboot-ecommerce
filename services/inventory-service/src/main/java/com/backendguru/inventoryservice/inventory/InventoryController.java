@@ -25,7 +25,8 @@ public class InventoryController {
   @PostMapping("/reservations")
   public ResponseEntity<ApiResponse<ReservationResponse>> reserve(
       @Valid @RequestBody ReserveRequest req) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(service.reserve(req)));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.success(service.reserve(req)));
   }
 
   @PostMapping("/reservations/{id}/commit")

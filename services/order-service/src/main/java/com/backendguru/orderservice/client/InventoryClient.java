@@ -41,7 +41,10 @@ public interface InventoryClient {
         public void release(Long reservationId) {
           // log and continue — best-effort compensation
           org.slf4j.LoggerFactory.getLogger(InventoryClient.class)
-              .warn("release fallback triggered for reservation {}: {}", reservationId, cause.toString());
+              .warn(
+                  "release fallback triggered for reservation {}: {}",
+                  reservationId,
+                  cause.toString());
         }
       };
     }

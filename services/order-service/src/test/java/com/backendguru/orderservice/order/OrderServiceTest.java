@@ -192,10 +192,15 @@ class OrderServiceTest {
         .thenReturn(
             ApiResponse.success(
                 new PaymentSnapshot(
-                    900L, 101L, "SUCCEEDED", new BigDecimal("20.00"), "TRY", "iyz-1", null, "1111")));
-    org.mockito.Mockito.doThrow(new RuntimeException("DB_DOWN"))
-        .when(inventoryClient)
-        .commit(501L);
+                    900L,
+                    101L,
+                    "SUCCEEDED",
+                    new BigDecimal("20.00"),
+                    "TRY",
+                    "iyz-1",
+                    null,
+                    "1111")));
+    org.mockito.Mockito.doThrow(new RuntimeException("DB_DOWN")).when(inventoryClient).commit(501L);
 
     assertThatThrownBy(() -> orderService.placeOrder(USER_ID, req()))
         .isInstanceOf(SagaException.class);

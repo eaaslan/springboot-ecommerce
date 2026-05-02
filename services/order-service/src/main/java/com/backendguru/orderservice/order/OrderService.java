@@ -125,8 +125,10 @@ public class OrderService {
       try {
         cartClient.clearCart(String.valueOf(userId));
       } catch (RuntimeException ex) {
-        log.warn("Cart clear failed after CONFIRMED order {} — manual cleanup may be needed",
-            order.getId(), ex);
+        log.warn(
+            "Cart clear failed after CONFIRMED order {} — manual cleanup may be needed",
+            order.getId(),
+            ex);
       }
 
       return OrderResponse.from(order);
