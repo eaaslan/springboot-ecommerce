@@ -128,6 +128,41 @@
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>com.google.cloud.tools</groupId>
+                    <artifactId>jib-maven-plugin</artifactId>
+                    <version>3.4.4</version>
+                    <configuration>
+                        <from>
+                            <image>eclipse-temurin:21-jre-alpine</image>
+                            <platforms>
+                                <platform><architecture>amd64</architecture><os>linux</os></platform>
+                                <platform><architecture>arm64</architecture><os>linux</os></platform>
+                            </platforms>
+                        </from>
+                        <to>
+                            <image>ghcr.io/eaaslan/ecommerce-${project.artifactId}</image>
+                            <tags>
+                                <tag>${project.version}</tag>
+                                <tag>latest</tag>
+                            </tags>
+                        </to>
+                        <container>
+                            <jvmFlags>
+                                <jvmFlag>-XX:MaxRAMPercentage=75</jvmFlag>
+                                <jvmFlag>-XX:+UseG1GC</jvmFlag>
+                            </jvmFlags>
+                            <environment>
+                                <SPRING_PROFILES_ACTIVE>docker</SPRING_PROFILES_ACTIVE>
+                            </environment>
+                            <labels>
+                                <org.opencontainers.image.source>https://github.com/eaaslan/springboot-ecommerce</org.opencontainers.image.source>
+                                <org.opencontainers.image.licenses>Apache-2.0</org.opencontainers.image.licenses>
+                            </labels>
+                            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+                        </container>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
                     <version>${spotless.version}</version>
