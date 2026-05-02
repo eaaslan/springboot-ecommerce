@@ -32,6 +32,7 @@
         <module>services/notification-service</module>
         <module>services/recommendation-service</module>
         <module>services/catalog-stream-service</module>
+        <module>services/seller-service</module>
     </modules>
 
     <properties>
