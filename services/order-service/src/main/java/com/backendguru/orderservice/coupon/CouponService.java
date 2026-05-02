@@ -162,7 +162,10 @@ public class CouponService {
       throw new ValidationException("Coupon usage limit reached");
     }
     if (redemptionRepository.existsByCouponIdAndUserId(c.getId(), userId)) {
-      throw new ValidationException("You have already used this coupon");
+      throw new ValidationException(
+          "This coupon ("
+              + c.getCode()
+              + ") was already redeemed by your account — one use per user");
     }
   }
 
