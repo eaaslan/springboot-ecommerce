@@ -49,6 +49,8 @@ public class GatewayJwtAuthenticationFilter implements WebFilter, Ordered {
         && (path.startsWith("/api/products")
             || path.startsWith("/api/recommendations")
             || path.startsWith("/api/catalog")
+            || path.startsWith("/api/listings/best") // marketplace V1 public buy-box
+            || path.matches("^/api/sellers/\\d+/public$") // marketplace V1 public seller profile
             || path.startsWith("/mcp"))) {
       return chain.filter(stripUserHeaders(exchange));
     }

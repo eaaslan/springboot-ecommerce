@@ -11,6 +11,8 @@ import com.backendguru.productservice.catalog.dto.ProductResponse;
 import com.backendguru.productservice.catalog.dto.ProductUpdateRequest;
 import com.backendguru.productservice.inventory.InventoryStatusDto;
 import com.backendguru.productservice.inventory.InventoryStockClient;
+import com.backendguru.productservice.marketplace.BestListingDto;
+import com.backendguru.productservice.marketplace.SellerListingClient;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,6 +33,7 @@ public class ProductService {
   private final CategoryRepository categoryRepository;
   private final ProductMapper mapper;
   private final InventoryStockClient inventoryClient;
+  private final SellerListingClient listingClient;
 
   @Transactional(readOnly = true)
   public PageResponse<ProductResponse> list(ProductFilter filter, Pageable pageable) {
@@ -46,7 +49,8 @@ public class ProductService {
 
     PageResponse<ProductResponse> page =
         PageResponse.of(productRepository.findAll(spec, pageable).map(mapper::toResponse));
-    return page.withContent(enrichWithLiveStock(page.content()));
+    List<ProductResponse> withStock = enrichWithLiveStock(page.content());
+    return page.withContent(enrichWithBestListing(withStock));
   }
 
   @Cacheable(cacheNames = "productById", key = "#id")
@@ -67,7 +71,32 @@ public class ProductService {
     ProductResponse base = getById(id);
     Map<Long, Integer> stocks = fetchLiveStock(List.of(id));
     Integer live = stocks.get(id);
-    return live == null ? base : base.withLiveStock(live.intValue());
+    ProductResponse withStock = live == null ? base : base.withLiveStock(live.intValue());
+    BestListingDto best = fetchBestListings(List.of(id)).get(id);
+    return best == null ? withStock : withStock.withBestListing(best);
+  }
+
+  private List<ProductResponse> enrichWithBestListing(List<ProductResponse> products) {
+    if (products.isEmpty()) return products;
+    List<Long> ids = products.stream().map(ProductResponse::id).toList();
+    Map<Long, BestListingDto> best = fetchBestListings(ids);
+    return products.stream()
+        .map(
+            p -> {
+              BestListingDto b = best.get(p.id());
+              return b == null ? p : p.withBestListing(b);
+            })
+        .toList();
+  }
+
+  private Map<Long, BestListingDto> fetchBestListings(List<Long> ids) {
+    try {
+      var resp = listingClient.bestForProducts(ids);
+      Map<Long, BestListingDto> data = resp.data();
+      return data == null ? Map.of() : data;
+    } catch (Exception e) {
+      return Map.of();
+    }
   }
 
   // -------- internals --------

@@ -28,6 +28,12 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/api/users/**
+        # Marketplace V1: seller-service expose'u product path'i altında
+        # (more specific routes MUST come before /api/products/** below)
+        - id: seller-service-product-listings
+          uri: lb://seller-service
+          predicates:
+            - Path=/api/products/*/listings
         - id: product-service
           uri: lb://product-service
           predicates:
@@ -56,6 +62,15 @@ spring:
           uri: lb://catalog-stream-service
           predicates:
             - Path=/api/catalog/**
+        # Marketplace V1: seller-service routes
+        - id: seller-service-sellers
+          uri: lb://seller-service
+          predicates:
+            - Path=/api/sellers/**
+        - id: seller-service-listings
+          uri: lb://seller-service
+          predicates:
+            - Path=/api/listings/**
 
 eureka:
   client:
