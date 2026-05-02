@@ -38,12 +38,7 @@ public class IdempotencyService {
     try {
       ProcessedOrder row =
           new ProcessedOrder(
-              key,
-              userId,
-              response.id(),
-              objectMapper.writeValueAsString(response),
-              status,
-              null);
+              key, userId, response.id(), objectMapper.writeValueAsString(response), status, null);
       repository.save(row);
     } catch (DataIntegrityViolationException dup) {
       log.info("Idempotency capture race: key={}, user={} already stored", key, userId);

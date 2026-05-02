@@ -21,6 +21,12 @@ public class SecurityConfig {
   private final HeaderAuthenticationFilter headerFilter;
 
   @Bean
+  public org.springframework.boot.web.servlet.FilterRegistrationBean<HeaderAuthenticationFilter>
+      disableHeaderFilterAutoRegistration() {
+    return HeaderAuthenticationFilter.disableAutoRegistration(headerFilter);
+  }
+
+  @Bean
   SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     return http.csrf(AbstractHttpConfigurer::disable)
         .cors(Customizer.withDefaults())

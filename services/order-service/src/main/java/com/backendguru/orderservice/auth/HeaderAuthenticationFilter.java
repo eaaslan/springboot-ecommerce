@@ -17,6 +17,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Slf4j
 public class HeaderAuthenticationFilter extends OncePerRequestFilter {
 
+  /**
+   * Stop Spring Boot's automatic servlet filter registration; this filter is wired into the Spring
+   * Security chain explicitly via {@link SecurityConfig}, so registering it twice would blow away
+   * the authentication we just set.
+   */
+  public static org.springframework.boot.web.servlet.FilterRegistrationBean<
+          HeaderAuthenticationFilter>
+      disableAutoRegistration(HeaderAuthenticationFilter f) {
+    var reg = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(f);
+    reg.setEnabled(false);
+    return reg;
+  }
+
   @Override
   protected void doFilterInternal(
       HttpServletRequest req, HttpServletResponse res, FilterChain chain)

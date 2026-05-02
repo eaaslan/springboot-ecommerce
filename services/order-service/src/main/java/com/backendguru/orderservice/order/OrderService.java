@@ -89,7 +89,7 @@ public class OrderService {
         item.setReservationId(reservation.reservationId());
         reservationIds.add(reservation.reservationId());
       }
-      orderRepository.save(order); // persist reservation ids
+      order = orderRepository.save(order); // persist reservation ids (rebind for next merge)
       log.info("Order {} reserved {} items", order.getId(), reservationIds.size());
 
       // 4. Charge payment
@@ -108,7 +108,7 @@ public class OrderService {
       }
       paymentId = payment.paymentId();
       order.setPaymentId(paymentId);
-      orderRepository.save(order);
+      order = orderRepository.save(order);
       log.info("Order {} payment {} authorized", order.getId(), paymentId);
 
       // 5. Commit reservations
@@ -130,7 +130,7 @@ public class OrderService {
 
       // 6. Mark CONFIRMED + write outbox row in the SAME transaction (atomic dual-write fix)
       order.setStatus(OrderStatus.CONFIRMED);
-      orderRepository.save(order);
+      order = orderRepository.save(order);
       outboxRepository.save(outboxAppender.buildOrderConfirmed(order));
       metrics.incrementPlaced(order.getCurrency());
       log.info("Order {} CONFIRMED + outbox event queued", order.getId());
