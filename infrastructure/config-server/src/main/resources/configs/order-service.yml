@@ -24,6 +24,17 @@ spring:
     openfeign:
       circuitbreaker:
         enabled: true
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER:guest}
+    password: ${RABBIT_PASS:guest}
+
+app:
+  rabbit:
+    exchange: order.events.exchange
+    routing-key:
+      order-confirmed: order.confirmed
 
 resilience4j:
   circuitbreaker:

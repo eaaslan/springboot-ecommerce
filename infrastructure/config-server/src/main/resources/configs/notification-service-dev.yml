@@ -1,0 +1,6 @@
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    com.backendguru.notificationservice: DEBUG
+    org.springframework.amqp: INFO
