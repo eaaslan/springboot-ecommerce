@@ -73,8 +73,7 @@ public class RabbitConfig {
   MessageConverter jsonMessageConverter() {
     ObjectMapper om = new ObjectMapper();
     om.registerModule(new JavaTimeModule());
-    om.disable(
-        com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    om.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     return new Jackson2JsonMessageConverter(om);
   }
 

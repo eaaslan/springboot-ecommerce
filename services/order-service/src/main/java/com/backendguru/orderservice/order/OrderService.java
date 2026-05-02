@@ -11,12 +11,13 @@ import com.backendguru.orderservice.client.dto.PaymentSnapshot;
 import com.backendguru.orderservice.client.dto.ReservationSnapshot;
 import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
-import com.backendguru.orderservice.outbox.OutboxAppender;
-import com.backendguru.orderservice.outbox.OutboxEventRepository;
 import com.backendguru.orderservice.exception.PaymentFailedException;
 import com.backendguru.orderservice.exception.SagaException;
 import com.backendguru.orderservice.order.dto.OrderResponse;
 import com.backendguru.orderservice.order.dto.PlaceOrderRequest;
+import com.backendguru.orderservice.observability.OrderMetrics;
+import com.backendguru.orderservice.outbox.OutboxAppender;
+import com.backendguru.orderservice.outbox.OutboxEventRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,8 +45,13 @@ public class OrderService {
   private final OrderEventPublisher eventPublisher;
   private final OutboxEventRepository outboxRepository;
   private final OutboxAppender outboxAppender;
+  private final OrderMetrics metrics;
 
   public OrderResponse placeOrder(Long userId, PlaceOrderRequest req) {
+    return metrics.placeOrderTimer().record(() -> placeOrderInternal(userId, req));
+  }
+
+  private OrderResponse placeOrderInternal(Long userId, PlaceOrderRequest req) {
     // 1. Fetch cart
     CartSnapshot cart = cartClient.getCart(String.valueOf(userId)).data();
     if (cart == null || cart.items() == null || cart.items().isEmpty()) {
@@ -126,6 +132,7 @@ public class OrderService {
       order.setStatus(OrderStatus.CONFIRMED);
       orderRepository.save(order);
       outboxRepository.save(outboxAppender.buildOrderConfirmed(order));
+      metrics.incrementPlaced(order.getCurrency());
       log.info("Order {} CONFIRMED + outbox event queued", order.getId());
 
       // 6b. Direct AMQP publish (best-effort, low-latency path for Phase 6 consumer)
@@ -210,6 +217,16 @@ public class OrderService {
     order.setStatus(OrderStatus.CANCELLED);
     order.setFailureReason(reason);
     orderRepository.save(order);
+    metrics.incrementCancelled(classifyReason(reason));
+  }
+
+  private static String classifyReason(String reason) {
+    if (reason == null) return "unknown";
+    String r = reason.toLowerCase();
+    if (r.contains("reservation")) return "reservation";
+    if (r.contains("payment")) return "payment";
+    if (r.contains("commit")) return "commit";
+    return "unexpected";
   }
 
   private void releaseReservations(List<Long> reservationIds) {

@@ -26,11 +26,13 @@ import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
 import com.backendguru.orderservice.exception.PaymentFailedException;
 import com.backendguru.orderservice.exception.SagaException;
+import com.backendguru.orderservice.observability.OrderMetrics;
+import com.backendguru.orderservice.order.dto.PlaceOrderRequest;
 import com.backendguru.orderservice.outbox.OutboxAppender;
 import com.backendguru.orderservice.outbox.OutboxEvent;
 import com.backendguru.orderservice.outbox.OutboxEventRepository;
 import com.backendguru.orderservice.outbox.OutboxStatus;
-import com.backendguru.orderservice.order.dto.PlaceOrderRequest;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -52,6 +54,9 @@ class OrderServiceTest {
   @Mock OrderEventPublisher eventPublisher;
   @Mock OutboxEventRepository outboxRepository;
   @Mock OutboxAppender outboxAppender;
+
+  @org.mockito.Spy
+  OrderMetrics metrics = new OrderMetrics(new SimpleMeterRegistry());
 
   @InjectMocks OrderService orderService;
 

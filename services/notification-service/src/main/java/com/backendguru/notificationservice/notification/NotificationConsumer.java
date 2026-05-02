@@ -15,7 +15,8 @@ public class NotificationConsumer {
 
   @RabbitListener(queues = "${app.rabbit.queue}")
   public void onOrderConfirmed(OrderConfirmedEvent event) {
-    log.debug("Received OrderConfirmedEvent: eventId={} orderId={}", event.eventId(), event.orderId());
+    log.debug(
+        "Received OrderConfirmedEvent: eventId={} orderId={}", event.eventId(), event.orderId());
     service.handleOrderConfirmed(event);
   }
 }

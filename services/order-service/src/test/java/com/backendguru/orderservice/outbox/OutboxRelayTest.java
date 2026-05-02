@@ -9,10 +9,13 @@ import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
@@ -23,8 +26,11 @@ class OutboxRelayTest {
 
   @Mock OutboxEventRepository repository;
 
-  @Mock @SuppressWarnings("rawtypes")
+  @Mock
+  @SuppressWarnings("rawtypes")
   KafkaTemplate kafkaTemplate;
+
+  @Spy MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
   @InjectMocks OutboxRelay relay;
 

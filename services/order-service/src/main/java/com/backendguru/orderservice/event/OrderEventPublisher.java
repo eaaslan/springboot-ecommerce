@@ -11,10 +11,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Best-effort publisher: failures are logged but do NOT abort the order. The order has already
- * been CONFIRMED in the local DB; if RabbitMQ is unavailable we accept eventual loss for now. Phase
- * 7 will replace this with the Outbox pattern (event row written in same TX as order, separate
- * relay process publishes).
+ * Best-effort publisher: failures are logged but do NOT abort the order. The order has already been
+ * CONFIRMED in the local DB; if RabbitMQ is unavailable we accept eventual loss for now. Phase 7
+ * will replace this with the Outbox pattern (event row written in same TX as order, separate relay
+ * process publishes).
  */
 @Component
 @Slf4j

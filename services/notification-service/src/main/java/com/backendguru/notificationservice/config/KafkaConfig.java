@@ -37,14 +37,13 @@ public class KafkaConfig {
 
     ObjectMapper om = new ObjectMapper();
     om.registerModule(new JavaTimeModule());
-    JsonDeserializer<OrderConfirmedEvent> jd = new JsonDeserializer<>(OrderConfirmedEvent.class, om, false);
+    JsonDeserializer<OrderConfirmedEvent> jd =
+        new JsonDeserializer<>(OrderConfirmedEvent.class, om, false);
     jd.addTrustedPackages("com.backendguru.common.event");
     jd.setUseTypeMapperForKey(false);
 
     return new DefaultKafkaConsumerFactory<>(
-        props,
-        new StringDeserializer(),
-        new ErrorHandlingDeserializer<>(jd));
+        props, new StringDeserializer(), new ErrorHandlingDeserializer<>(jd));
   }
 
   @Bean

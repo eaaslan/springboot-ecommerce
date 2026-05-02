@@ -24,6 +24,11 @@ class NotificationServiceTest {
 
   @Mock NotificationRepository notificationRepo;
   @Mock ProcessedEventRepository processedRepo;
+
+  @org.mockito.Spy
+  io.micrometer.core.instrument.MeterRegistry meterRegistry =
+      new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+
   @InjectMocks NotificationService service;
 
   private OrderConfirmedEvent event() {
