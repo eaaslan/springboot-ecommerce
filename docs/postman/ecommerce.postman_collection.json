@@ -1,0 +1,351 @@
+{
+  "info": {
+    "_postman_id": "f4a7b3c8-1234-4abc-9def-springboot-ecommerce",
+    "name": "Springboot E-Commerce — Microservices",
+    "description": "End-to-end collection for the 12-service e-commerce stack. Login → catalog → cart → place order → recommendations. Idempotency, rate limit, and reactive endpoints included.\n\n**Setup:** Import this collection AND `ecommerce.postman_environment.json`. Login first; access/refresh tokens are auto-saved into env. All other requests use them automatically.\n\n**Routes go through gateway** (`{{baseUrl}}` = `http://localhost:8080`). Direct service ports also documented in the README.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "_collection_version", "value": "1.0.0" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Skip auth for the public endpoints by checking pm.info.requestName",
+          "const publicNames = ['Register', 'Login', 'Refresh Token', 'Public — Catalog list', 'Public — Catalog by id', 'Public — Catalog search', 'Public — Catalog SSE', 'Public — Recommendations similar', 'Public — Recommendations search', 'Public — Recommendations forUser', 'Public — MCP tools list', 'Health — Liveness', 'Health — Readiness', 'Health — Prometheus'];",
+          "if (publicNames.includes(pm.info.requestName)) {",
+          "  pm.request.auth = { type: 'noauth' };",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "0 — Health & Observability",
+      "item": [
+        {
+          "name": "Health — Liveness",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/actuator/health/liveness", "host": ["{{baseUrl}}"], "path": ["actuator","health","liveness"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Health — Readiness",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/actuator/health/readiness", "host": ["{{baseUrl}}"], "path": ["actuator","health","readiness"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Health — Prometheus (gateway)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/actuator/prometheus", "host": ["{{baseUrl}}"], "path": ["actuator","prometheus"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 — Auth (User Service)",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Created or already-exists', () => pm.expect([200,201,409]).to.include(pm.response.code));"
+          ] } }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const json = pm.response.json();",
+            "if (json.data && json.data.accessToken) {",
+            "  pm.environment.set('accessToken', json.data.accessToken);",
+            "  pm.environment.set('refreshToken', json.data.refreshToken);",
+            "  console.log('accessToken saved to environment');",
+            "}"
+          ] } }]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","auth","refresh"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "  const json = pm.response.json();",
+            "  pm.environment.set('accessToken', json.data.accessToken);",
+            "  pm.environment.set('refreshToken', json.data.refreshToken);",
+            "}"
+          ] } }]
+        },
+        {
+          "name": "Me (current user)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api","users","me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 — Catalog (Product Service)",
+      "item": [
+        {
+          "name": "Public — Catalog list",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","products"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"}] }
+          }
+        },
+        {
+          "name": "Public — Catalog by id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products/1", "host": ["{{baseUrl}}"], "path": ["api","products","1"] }
+          }
+        },
+        {
+          "name": "Public — Catalog filter by category + price",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products?categoryId=1&minPrice=10&maxPrice=200&page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","products"], "query": [{"key":"categoryId","value":"1"},{"key":"minPrice","value":"10"},{"key":"maxPrice","value":"200"},{"key":"page","value":"0"},{"key":"size","value":"10"}] }
+          }
+        },
+        {
+          "name": "Categories",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products/categories", "host": ["{{baseUrl}}"], "path": ["api","products","categories"] }
+          }
+        },
+        {
+          "name": "Admin — Create product (requires ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sku\": \"DEMO-001\",\n  \"name\": \"Demo Wireless Headphones\",\n  \"description\": \"Postman demo product\",\n  \"priceAmount\": 149.99,\n  \"priceCurrency\": \"TRY\",\n  \"stockQuantity\": 50,\n  \"categoryId\": 1\n}" },
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api","products"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 — Cart (Cart Service)",
+      "item": [
+        {
+          "name": "Get my cart",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/cart", "host": ["{{baseUrl}}"], "path": ["api","cart"] }
+          }
+        },
+        {
+          "name": "Add item",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": 1,\n  \"quantity\": 2\n}" },
+            "url": { "raw": "{{baseUrl}}/api/cart/items", "host": ["{{baseUrl}}"], "path": ["api","cart","items"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } }]
+        },
+        {
+          "name": "Remove item",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/cart/items/1", "host": ["{{baseUrl}}"], "path": ["api","cart","items","1"] }
+          }
+        },
+        {
+          "name": "Clear cart",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/cart", "host": ["{{baseUrl}}"], "path": ["api","cart"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 — Orders (Order Service — Saga + Idempotency)",
+      "item": [
+        {
+          "name": "Place order (good card → CONFIRMED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"card\": {\n    \"holderName\": \"Alice Demo\",\n    \"number\": \"4111111111111111\",\n    \"expireMonth\": \"12\",\n    \"expireYear\": \"2030\",\n    \"cvc\": \"123\"\n  }\n}" },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "if (json.data && json.data.id) {",
+            "  pm.environment.set('lastOrderId', json.data.id);",
+            "  pm.environment.set('lastIdempotencyKey', pm.request.headers.get('Idempotency-Key'));",
+            "  pm.test('Status CONFIRMED', () => pm.expect(json.data.status).to.eql('CONFIRMED'));",
+            "}"
+          ] } }]
+        },
+        {
+          "name": "Place order — Idempotency replay (same key, same body)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{lastIdempotencyKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"card\": {\n    \"holderName\": \"Alice Demo\",\n    \"number\": \"4111111111111111\",\n    \"expireMonth\": \"12\",\n    \"expireYear\": \"2030\",\n    \"cvc\": \"123\"\n  }\n}" },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Replay returns same orderId', () => {",
+            "  const json = pm.response.json();",
+            "  pm.expect(json.data.id.toString()).to.eql(pm.environment.get('lastOrderId').toString());",
+            "});"
+          ] } }]
+        },
+        {
+          "name": "Place order (declining card → CANCELLED)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"card\": {\n    \"holderName\": \"Alice Demo\",\n    \"number\": \"4111111111111115\",\n    \"expireMonth\": \"12\",\n    \"expireYear\": \"2030\",\n    \"cvc\": \"123\"\n  }\n}" },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] }
+          },
+          "description": "Last 4 digits 1115 triggers Iyzico mock decline → saga compensation: release reservations + mark order CANCELLED."
+        },
+        {
+          "name": "Get order by id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}", "host": ["{{baseUrl}}"], "path": ["api","orders","{{lastOrderId}}"] }
+          }
+        },
+        {
+          "name": "List my orders",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 — Inventory (Inventory Service — direct)",
+      "item": [
+        {
+          "name": "List stock",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "http://localhost:8084/api/inventory/products/1", "host": ["http://localhost:8084"], "path": ["api","inventory","products","1"] }
+          },
+          "description": "Direct port (not via gateway) — admin-style inventory query."
+        }
+      ]
+    },
+    {
+      "name": "6 — Recommendations + MCP",
+      "item": [
+        {
+          "name": "Public — Recommendations similar",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/recommendations/products/1/similar?k=5", "host": ["{{baseUrl}}"], "path": ["api","recommendations","products","1","similar"], "query": [{"key":"k","value":"5"}] }
+          }
+        },
+        {
+          "name": "Public — Recommendations search",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/recommendations/search?q=wireless&limit=5", "host": ["{{baseUrl}}"], "path": ["api","recommendations","search"], "query": [{"key":"q","value":"wireless"},{"key":"limit","value":"5"}] }
+          }
+        },
+        {
+          "name": "Public — Recommendations forUser",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/recommendations/users/42?k=5", "host": ["{{baseUrl}}"], "path": ["api","recommendations","users","42"], "query": [{"key":"k","value":"5"}] }
+          }
+        },
+        {
+          "name": "Public — MCP tools list",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "http://localhost:8088/mcp", "host": ["http://localhost:8088"], "path": ["mcp"] }
+          },
+          "description": "Direct to recommendation-service. Spring AI MCP server lists available tools (similarProducts, recommendForUser, searchProducts). Wire into Claude Desktop via claude_desktop_config.json."
+        }
+      ]
+    },
+    {
+      "name": "7 — Reactive Catalog Stream (WebFlux + R2DBC + SSE)",
+      "item": [
+        {
+          "name": "Public — Catalog list",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/catalog/products?page=0&size=5", "host": ["{{baseUrl}}"], "path": ["api","catalog","products"], "query": [{"key":"page","value":"0"},{"key":"size","value":"5"}] }
+          }
+        },
+        {
+          "name": "Public — Catalog by id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/catalog/products/1", "host": ["{{baseUrl}}"], "path": ["api","catalog","products","1"] }
+          }
+        },
+        {
+          "name": "Public — Catalog search",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/catalog/products/search?q=wireless&limit=5", "host": ["{{baseUrl}}"], "path": ["api","catalog","products","search"], "query": [{"key":"q","value":"wireless"},{"key":"limit","value":"5"}] }
+          }
+        },
+        {
+          "name": "Public — Catalog SSE",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "text/event-stream" }],
+            "url": { "raw": "{{baseUrl}}/api/catalog/products/stream?intervalSeconds=2", "host": ["{{baseUrl}}"], "path": ["api","catalog","products","stream"], "query": [{"key":"intervalSeconds","value":"2"}] }
+          },
+          "description": "Server-Sent Events. Postman doesn't render SSE natively; better tested with `curl -N`. Connection stays open and emits events at the chosen interval."
+        }
+      ]
+    }
+  ]
+}
