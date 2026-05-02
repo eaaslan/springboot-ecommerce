@@ -37,6 +37,10 @@ public class GatewayJwtAuthenticationFilter implements WebFilter, Ordered {
 
   @Override
   public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+    // CORS preflight requests must skip auth — browser sends them without credentials.
+    if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {
+      return chain.filter(exchange);
+    }
     String path = exchange.getRequest().getPath().value();
     if (PUBLIC_PREFIXES.stream().anyMatch(path::startsWith)) {
       return chain.filter(exchange);
