@@ -14,8 +14,8 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 | `services/cart-service` | Spring Boot | 8083 | Cart with Redis backend (in-memory under `test` profile), Feign + Resilience4j |
 | `services/inventory-service` | Spring Boot | 8084 | Stock + reservations (HELD/COMMITTED/RELEASED), optimistic locking |
 | `services/payment-service` | Spring Boot | 8085 | Iyzico-shaped payment mock, refund support, audit ledger |
-| `services/order-service` | Spring Boot | 8086 | Saga orchestrator (cart → reserve → charge → commit → confirm → clear) with compensations |
-| `services/notification-service` | Spring Boot | 8087 | Async notification consumer (RabbitMQ + DLQ + idempotent processing) |
+| `services/order-service` | Spring Boot | 8086 | Saga orchestrator + Outbox publisher (atomic event write, scheduled Kafka relay) |
+| `services/notification-service` | Spring Boot | 8087 | Async notification consumer (RabbitMQ + Kafka, idempotent dedup across both transports) |
 | `shared/common` | Library JAR | — | Response envelopes, exception model, correlation filters, AMQP event records |
 
 ## Prerequisites
@@ -33,7 +33,7 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 ## Run
 
 ```bash
-docker compose up -d postgres redis rabbitmq
+docker compose up -d postgres redis rabbitmq kafka
 ./mvnw -pl infrastructure/config-server spring-boot:run
 ./mvnw -pl infrastructure/discovery-server spring-boot:run
 ./mvnw -pl services/user-service spring-boot:run
@@ -81,9 +81,12 @@ curl -X POST http://localhost:8080/api/orders \
 
 # Use card 4111-1111-1111-1115 to force a payment decline (compensation kicks in)
 
-# After CONFIRMED, notification-service consumes OrderConfirmedEvent off RabbitMQ
+# Outbox pattern: order-service writes outbox_events row in same TX as CONFIRMED.
+# Scheduled OutboxRelay (every 1s) publishes PENDING rows to Kafka topic `order.confirmed`.
+# notification-service consumes both AMQP and Kafka — idempotent processed_events table dedups.
 # Watch its log: "Notification SENT — eventId=... orderId=... channel=EMAIL"
 # RabbitMQ management UI: http://localhost:15672 (guest/guest)
+# Kafka broker: localhost:9092 (KRaft single-node)
 ```
 
 ## Profiles
@@ -105,7 +108,7 @@ curl -X POST http://localhost:8080/api/orders \
 | 4 | Cart Service Redis backend (profile-based store, 30-day TTL) | ✅ |
 | 5 | Order + Inventory + Payment (Saga, Iyzico mock) | ✅ |
 | 6 | Notification Service (RabbitMQ + DLQ + idempotent consumer) | ✅ |
-| 7 | Event bus (Kafka, Outbox pattern) | upcoming |
+| 7 | Event bus (Kafka + Outbox pattern, idempotent producer, parallel Kafka consumer) | ✅ |
 | 8 | Observability (Prometheus, Grafana, Zipkin) | upcoming |
 | 9 | Recommendation / MCP AI Server | upcoming |
 | 10 | Reactive layer (WebFlux) | upcoming |
