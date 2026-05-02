@@ -1,0 +1,101 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP RPS by service",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count[1m])) by (application)",
+          "legendFormat": "{{application}}"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP p95 latency by service (s)",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, application))",
+          "legendFormat": "{{application}}"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate (4xx + 5xx) per service",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[1m])) by (application)",
+          "legendFormat": "{{application}}"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM heap used (bytes)",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{area=\"heap\"}",
+          "legendFormat": "{{application}} {{id}}"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "bytes"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Orders placed / cancelled (rate/min)",
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {"expr": "sum(rate(orders_placed_total[1m]))", "legendFormat": "placed"},
+        {"expr": "sum(rate(orders_cancelled_total[1m])) by (reason)", "legendFormat": "cancelled {{reason}}"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Outbox published vs failed",
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {"expr": "sum(rate(outbox_published_total[1m])) by (eventType)", "legendFormat": "published {{eventType}}"},
+        {"expr": "sum(rate(outbox_failed_total[1m])) by (eventType)", "legendFormat": "failed {{eventType}}"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Notifications sent vs duplicate",
+      "gridPos": {"x": 0, "y": 24, "w": 24, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "Prometheus"},
+      "targets": [
+        {"expr": "sum(rate(notifications_sent_total[1m])) by (channel)", "legendFormat": "sent {{channel}}"},
+        {"expr": "sum(rate(notifications_duplicate_total[1m]))", "legendFormat": "duplicate"}
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["microservices", "phase-8"],
+  "templating": {"list": []},
+  "time": {"from": "now-30m", "to": "now"},
+  "timezone": "browser",
+  "title": "Microservices Overview",
+  "uid": "microservices-overview",
+  "version": 1
+}
