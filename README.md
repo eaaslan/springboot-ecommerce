@@ -17,6 +17,7 @@ Spring Boot 3 / Spring Cloud 2024.0 microservice e-commerce, designed to cover b
 | `services/order-service` | Spring Boot | 8086 | Saga orchestrator + Outbox publisher (atomic event write, scheduled Kafka relay) |
 | `services/notification-service` | Spring Boot | 8087 | Async notification consumer (RabbitMQ + Kafka, idempotent dedup across both transports) |
 | `services/recommendation-service` | Spring Boot | 8088 | Content-based recommender + MCP server (Spring AI) for AI agents |
+| `services/catalog-stream-service` | Spring Boot | 8089 | Reactive read facade (WebFlux + R2DBC + SSE) over productdb |
 | `shared/common` | Library JAR | — | Response envelopes, exception model, correlation filters, AMQP event records |
 
 ## Prerequisites
@@ -45,6 +46,7 @@ docker compose up -d postgres redis rabbitmq kafka prometheus grafana zipkin
 ./mvnw -pl services/order-service spring-boot:run
 ./mvnw -pl services/notification-service spring-boot:run
 ./mvnw -pl services/recommendation-service spring-boot:run
+./mvnw -pl services/catalog-stream-service spring-boot:run
 ./mvnw -pl infrastructure/api-gateway spring-boot:run
 ```
 
@@ -104,6 +106,12 @@ curl 'http://localhost:8080/api/recommendations/search?q=wireless&limit=5'
 # claude_desktop_config.json:
 # { "mcpServers": { "ecommerce": { "url": "http://localhost:8088/mcp" } } }
 # Tools auto-listed: similarProducts, recommendForUser, searchProducts
+
+# Reactive read facade (WebFlux + R2DBC) — public read paths
+curl 'http://localhost:8080/api/catalog/products?page=0&size=5'
+curl 'http://localhost:8080/api/catalog/products/search?q=wireless'
+# Server-Sent Events (keeps connection open, emits products every 2s)
+curl -N 'http://localhost:8080/api/catalog/products/stream?intervalSeconds=2'
 ```
 
 ## Profiles
@@ -128,6 +136,6 @@ curl 'http://localhost:8080/api/recommendations/search?q=wireless&limit=5'
 | 7 | Event bus (Kafka + Outbox pattern, idempotent producer, parallel Kafka consumer) | ✅ |
 | 8 | Observability (Prometheus + Grafana + Zipkin, Micrometer + OTel, RED metrics, business counters) | ✅ |
 | 9 | Recommendation Service + MCP AI Server (Spring AI, content-based scoring) | ✅ |
-| 10 | Reactive layer (WebFlux) | upcoming |
+| 10 | Reactive layer (WebFlux + R2DBC + SSE — `catalog-stream-service`) | ✅ |
 | 11 | Performance + production-readiness | upcoming |
 | 12 | Production deployment (Oracle Cloud Ampere A1, Jib, Slack) | upcoming |
