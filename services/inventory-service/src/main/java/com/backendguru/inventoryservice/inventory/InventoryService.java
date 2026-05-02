@@ -92,6 +92,15 @@ public class InventoryService {
     return InventoryStatusResponse.from(item);
   }
 
+  @Transactional(readOnly = true)
+  public java.util.List<InventoryStatusResponse> statusForProducts(
+      java.util.Collection<Long> productIds) {
+    if (productIds == null || productIds.isEmpty()) return java.util.List.of();
+    return itemRepository.findByProductIdIn(productIds).stream()
+        .map(InventoryStatusResponse::from)
+        .toList();
+  }
+
   /** Concrete exception sub-typed so saga at order-service can map this distinctly to 409. */
   public static class InsufficientStockException extends BusinessException {
     public InsufficientStockException(String message) {

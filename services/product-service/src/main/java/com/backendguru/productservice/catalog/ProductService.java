@@ -9,7 +9,11 @@ import com.backendguru.productservice.catalog.dto.ProductFilter;
 import com.backendguru.productservice.catalog.dto.ProductMapper;
 import com.backendguru.productservice.catalog.dto.ProductResponse;
 import com.backendguru.productservice.catalog.dto.ProductUpdateRequest;
+import com.backendguru.productservice.inventory.InventoryStatusDto;
+import com.backendguru.productservice.inventory.InventoryStockClient;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -26,6 +30,7 @@ public class ProductService {
   private final ProductRepository productRepository;
   private final CategoryRepository categoryRepository;
   private final ProductMapper mapper;
+  private final InventoryStockClient inventoryClient;
 
   @Transactional(readOnly = true)
   public PageResponse<ProductResponse> list(ProductFilter filter, Pageable pageable) {
@@ -39,7 +44,9 @@ public class ProductService {
     if (priceSpec != null) spec = spec.and(priceSpec);
     if (Boolean.TRUE.equals(filter.inStock())) spec = spec.and(ProductSpecifications.inStock());
 
-    return PageResponse.of(productRepository.findAll(spec, pageable).map(mapper::toResponse));
+    PageResponse<ProductResponse> page =
+        PageResponse.of(productRepository.findAll(spec, pageable).map(mapper::toResponse));
+    return page.withContent(enrichWithLiveStock(page.content()));
   }
 
   @Cacheable(cacheNames = "productById", key = "#id")
@@ -50,6 +57,47 @@ public class ProductService {
             .findWithCategoryById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product " + id + " not found"));
     return mapper.toResponse(p);
+  }
+
+  /**
+   * getById + live stock enrichment. Kept outside the cache so stock stays fresh while product
+   * metadata stays cached.
+   */
+  public ProductResponse getByIdWithLiveStock(Long id) {
+    ProductResponse base = getById(id);
+    Map<Long, Integer> stocks = fetchLiveStock(List.of(id));
+    Integer live = stocks.get(id);
+    return live == null ? base : base.withLiveStock(live.intValue());
+  }
+
+  // -------- internals --------
+
+  private List<ProductResponse> enrichWithLiveStock(List<ProductResponse> products) {
+    if (products.isEmpty()) return products;
+    List<Long> ids = products.stream().map(ProductResponse::id).toList();
+    Map<Long, Integer> stocks = fetchLiveStock(ids);
+    return products.stream()
+        .map(
+            p -> {
+              Integer live = stocks.get(p.id());
+              return live == null ? p : p.withLiveStock(live.intValue());
+            })
+        .toList();
+  }
+
+  /** Returns map productId → availableQty. Empty map on Feign failure (fallback). */
+  private Map<Long, Integer> fetchLiveStock(List<Long> ids) {
+    try {
+      var resp = inventoryClient.statusBatch(ids);
+      List<InventoryStatusDto> data = resp.data();
+      if (data == null) return Map.of();
+      return data.stream()
+          .collect(
+              Collectors.toMap(
+                  InventoryStatusDto::productId, InventoryStatusDto::availableQty, (a, b) -> a));
+    } catch (Exception e) {
+      return Map.of();
+    }
   }
 
   @Transactional(readOnly = true)

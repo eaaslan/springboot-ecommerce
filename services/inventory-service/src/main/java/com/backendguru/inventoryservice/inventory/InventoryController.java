@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -41,7 +42,14 @@ public class InventoryController {
     return ResponseEntity.noContent().build();
   }
 
-  @GetMapping("/{productId}")
+  /** Batch lookup for the catalog — single round-trip per page (no N+1). */
+  @GetMapping("/batch")
+  public ApiResponse<java.util.List<InventoryStatusResponse>> statusBatch(
+      @RequestParam("ids") java.util.List<Long> ids) {
+    return ApiResponse.success(service.statusForProducts(ids));
+  }
+
+  @GetMapping("/{productId:\\d+}")
   public ApiResponse<InventoryStatusResponse> status(@PathVariable Long productId) {
     return ApiResponse.success(service.statusForProduct(productId));
   }

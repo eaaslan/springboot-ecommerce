@@ -22,4 +22,9 @@ public record PageResponse<T>(
         p.isFirst(),
         p.isLast());
   }
+
+  /** Returns a copy of this page with the same metadata but a new content list. */
+  public PageResponse<T> withContent(List<T> newContent) {
+    return new PageResponse<>(newContent, page, size, totalElements, totalPages, first, last);
+  }
 }

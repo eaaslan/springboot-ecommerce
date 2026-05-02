@@ -56,7 +56,7 @@ public class ProductController {
 
   @GetMapping("/{id}")
   public ApiResponse<ProductResponse> getById(@PathVariable Long id) {
-    return ApiResponse.success(service.getById(id));
+    return ApiResponse.success(service.getByIdWithLiveStock(id));
   }
 
   @GetMapping("/categories")
