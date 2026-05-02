@@ -14,3 +14,7 @@ GRANT ALL PRIVILEGES ON DATABASE paymentdb TO payment;
 CREATE USER orderusr WITH PASSWORD 'pass';
 CREATE DATABASE orderdb OWNER orderusr;
 GRANT ALL PRIVILEGES ON DATABASE orderdb TO orderusr;
+
+CREATE USER notification WITH PASSWORD 'pass';
+CREATE DATABASE notificationdb OWNER notification;
+GRANT ALL PRIVILEGES ON DATABASE notificationdb TO notification;
