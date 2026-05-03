@@ -58,13 +58,17 @@ public final class SellerDtos {
     }
   }
 
-  /** Public storefront — only safe fields, no IBAN/tax. */
+  /**
+   * Public storefront — only safe fields, no IBAN/tax. {@code commissionPct} is published so
+   * order-service (and any other consumer) can compute the real per-seller commission instead of a
+   * hardcoded default. n11/Trendyol publish rate cards openly so this is not considered sensitive.
+   */
   public record SellerPublicResponse(
-      Long id, String businessName, BigDecimal rating, int ratingCount) {
+      Long id, String businessName, BigDecimal commissionPct, BigDecimal rating, int ratingCount) {
 
     public static SellerPublicResponse from(Seller s) {
       return new SellerPublicResponse(
-          s.getId(), s.getBusinessName(), s.getRating(), s.getRatingCount());
+          s.getId(), s.getBusinessName(), s.getCommissionPct(), s.getRating(), s.getRatingCount());
     }
   }
 }

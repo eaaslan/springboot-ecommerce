@@ -42,6 +42,14 @@ public class ListingService {
   }
 
   @Transactional(readOnly = true)
+  public List<ListingResponse> publicForSeller(Long sellerId) {
+    String name = sellerRepository.findById(sellerId).map(Seller::getBusinessName).orElse(null);
+    return listingRepository.findBySellerIdAndEnabledTrueOrderByIdDesc(sellerId).stream()
+        .map(l -> ListingResponse.from(l, name))
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
   public List<ListingResponse> publicForProduct(Long productId) {
     List<Listing> listings = listingRepository.findByProductIdAndEnabledTrue(productId);
     Map<Long, String> names = sellerNamesFor(listings);

@@ -55,6 +55,24 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/api/seller-orders/**
+        # Marketplace V4: payout admin routes (order-service)
+        - id: order-service-admin-payouts
+          uri: lb://order-service
+          predicates:
+            - Path=/api/admin/payouts/**
+        # Marketplace V4: reviews routes (seller-service owns reviews + rating)
+        - id: seller-service-reviews
+          uri: lb://seller-service
+          predicates:
+            - Path=/api/reviews/**
+        - id: seller-service-product-reviews
+          uri: lb://seller-service
+          predicates:
+            - Path=/api/products/*/reviews
+        - id: seller-service-seller-reviews
+          uri: lb://seller-service
+          predicates:
+            - Path=/api/sellers/*/reviews
         - id: recommendation-service
           uri: lb://recommendation-service
           predicates:

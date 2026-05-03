@@ -3,6 +3,8 @@ package com.backendguru.sellerservice.seller;
 import com.backendguru.common.dto.ApiResponse;
 import com.backendguru.common.error.ResourceNotFoundException;
 import com.backendguru.common.error.UnauthorizedException;
+import com.backendguru.sellerservice.listing.ListingService;
+import com.backendguru.sellerservice.listing.dto.ListingDtos.ListingResponse;
 import com.backendguru.sellerservice.seller.dto.SellerDtos.AdminUpdateRequest;
 import com.backendguru.sellerservice.seller.dto.SellerDtos.ApplyRequest;
 import com.backendguru.sellerservice.seller.dto.SellerDtos.SellerPublicResponse;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SellerController {
 
   private final SellerService service;
+  private final ListingService listingService;
 
   // -------- user-facing --------
 
@@ -62,6 +65,12 @@ public class SellerController {
   @GetMapping("/{id:\\d+}/public")
   public ApiResponse<SellerPublicResponse> publicProfile(@PathVariable Long id) {
     return ApiResponse.success(service.publicById(id));
+  }
+
+  /** Storefront — every active listing belonging to the seller. */
+  @GetMapping("/{id:\\d+}/listings")
+  public ApiResponse<List<ListingResponse>> publicListings(@PathVariable Long id) {
+    return ApiResponse.success(listingService.publicForSeller(id));
   }
 
   // -------- admin --------

@@ -10,5 +10,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
 
   List<Listing> findBySellerId(Long sellerId);
 
+  List<Listing> findBySellerIdAndEnabledTrueOrderByIdDesc(Long sellerId);
+
   List<Listing> findByProductIdInAndEnabledTrue(Collection<Long> productIds);
 }

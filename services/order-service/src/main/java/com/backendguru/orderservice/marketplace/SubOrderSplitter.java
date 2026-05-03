@@ -1,5 +1,6 @@
 package com.backendguru.orderservice.marketplace;
 
+import com.backendguru.orderservice.marketplace.SellerCommissionClient.SellerPublic;
 import com.backendguru.orderservice.order.Order;
 import com.backendguru.orderservice.order.OrderItem;
 import java.math.BigDecimal;
@@ -29,6 +30,7 @@ public class SubOrderSplitter {
   static final BigDecimal DEFAULT_COMMISSION_PCT = new BigDecimal("8.00");
 
   private final SubOrderRepository subOrderRepository;
+  private final SellerCommissionClient commissionClient;
 
   public List<SubOrder> split(Order order) {
     Map<Long, BigDecimal> bucketSubtotals = new LinkedHashMap<>();
@@ -47,7 +49,7 @@ public class SubOrderSplitter {
     for (Map.Entry<Long, BigDecimal> e : bucketSubtotals.entrySet()) {
       Long sellerId = e.getKey() == 0L ? null : e.getKey();
       BigDecimal subtotal = e.getValue();
-      BigDecimal pct = sellerId == null ? BigDecimal.ZERO : DEFAULT_COMMISSION_PCT;
+      BigDecimal pct = sellerId == null ? BigDecimal.ZERO : commissionFor(sellerId);
       BigDecimal commission =
           subtotal.multiply(pct).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
       BigDecimal payout = subtotal.subtract(commission);
@@ -77,5 +79,23 @@ public class SubOrderSplitter {
     log.info(
         "Order {} split into {} sub-order(s): {}", order.getId(), created.size(), created.values());
     return List.copyOf(created.values());
+  }
+
+  /**
+   * Looks up the per-seller commission rate; falls back to {@link #DEFAULT_COMMISSION_PCT} on any
+   * failure or missing data. Never throws — keeps the saga moving.
+   */
+  private BigDecimal commissionFor(Long sellerId) {
+    try {
+      var resp = commissionClient.getById(sellerId);
+      SellerPublic data = resp == null ? null : resp.data();
+      if (data != null && data.commissionPct() != null) {
+        return data.commissionPct();
+      }
+    } catch (RuntimeException ex) {
+      log.warn(
+          "Commission lookup failed for seller {}, using default: {}", sellerId, ex.toString());
+    }
+    return DEFAULT_COMMISSION_PCT;
   }
 }

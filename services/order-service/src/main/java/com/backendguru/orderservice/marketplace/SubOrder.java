@@ -82,4 +82,8 @@ public class SubOrder {
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
+
+  /** FK → seller_payouts.id once a payout run includes this sub-order. */
+  @Column(name = "payout_id")
+  private Long payoutId;
 }

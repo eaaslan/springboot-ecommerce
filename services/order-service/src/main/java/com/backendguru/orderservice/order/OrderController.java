@@ -4,6 +4,9 @@ import com.backendguru.common.dto.ApiResponse;
 import com.backendguru.common.error.UnauthorizedException;
 import com.backendguru.orderservice.idempotency.IdempotencyService;
 import com.backendguru.orderservice.idempotency.ProcessedOrder;
+import com.backendguru.orderservice.marketplace.ReturnsService;
+import com.backendguru.orderservice.marketplace.SubOrder;
+import com.backendguru.orderservice.marketplace.dto.SubOrderResponse;
 import com.backendguru.orderservice.order.dto.OrderResponse;
 import com.backendguru.orderservice.order.dto.PlaceOrderRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,6 +34,7 @@ public class OrderController {
 
   private final OrderService service;
   private final IdempotencyService idempotencyService;
+  private final ReturnsService returnsService;
 
   @PostMapping
   public ResponseEntity<ApiResponse<OrderResponse>> place(
@@ -70,6 +74,13 @@ public class OrderController {
   @GetMapping
   public ApiResponse<List<OrderResponse>> list(Authentication auth) {
     return ApiResponse.success(service.listOrdersForUser(currentUserId(auth)));
+  }
+
+  /** Customer flags a sub-order for return. State machine guards re-requests. */
+  @PostMapping("/sub-orders/{id:\\d+}/return-request")
+  public ApiResponse<SubOrderResponse> requestReturn(Authentication auth, @PathVariable Long id) {
+    SubOrder sub = returnsService.requestReturn(id, currentUserId(auth));
+    return ApiResponse.success(SubOrderResponse.from(sub));
   }
 
   private Long currentUserId(Authentication auth) {
