@@ -28,12 +28,16 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/api/users/**
-        # Marketplace V1: seller-service expose'u product path'i altında
+        # Marketplace V1+V4: seller-service expose'u product path'i altında
         # (more specific routes MUST come before /api/products/** below)
         - id: seller-service-product-listings
           uri: lb://seller-service
           predicates:
             - Path=/api/products/*/listings
+        - id: seller-service-product-reviews
+          uri: lb://seller-service
+          predicates:
+            - Path=/api/products/*/reviews
         - id: product-service
           uri: lb://product-service
           predicates:
@@ -65,10 +69,6 @@ spring:
           uri: lb://seller-service
           predicates:
             - Path=/api/reviews/**
-        - id: seller-service-product-reviews
-          uri: lb://seller-service
-          predicates:
-            - Path=/api/products/*/reviews
         - id: seller-service-seller-reviews
           uri: lb://seller-service
           predicates:
