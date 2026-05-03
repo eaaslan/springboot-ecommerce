@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,6 +13,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -40,6 +42,10 @@ public class SecurityConfig {
                     .requestMatchers("GET", "/api/products/*/listings")
                     .permitAll()
                     .requestMatchers("GET", "/api/listings/best")
+                    .permitAll()
+                    // GET /api/listings/{id} — digit-only so /me stays auth'd
+                    .requestMatchers(
+                        RegexRequestMatcher.regexMatcher(HttpMethod.GET, "^/api/listings/\\d+$"))
                     .permitAll()
                     .requestMatchers("GET", "/api/sellers/*/public")
                     .permitAll()

@@ -9,7 +9,10 @@ public record CartItemResponse(
     BigDecimal priceAmount,
     String priceCurrency,
     int quantity,
-    BigDecimal lineTotal) {
+    BigDecimal lineTotal,
+    Long listingId,
+    Long sellerId,
+    String sellerName) {
 
   public static CartItemResponse from(CartItem item) {
     return new CartItemResponse(
@@ -18,6 +21,9 @@ public record CartItemResponse(
         item.priceAmount(),
         item.priceCurrency(),
         item.quantity(),
-        item.lineTotal());
+        item.lineTotal(),
+        item.listingId(),
+        item.sellerId(),
+        item.sellerName());
   }
 }

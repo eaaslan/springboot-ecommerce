@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.backendguru.cartservice.exception.ProductUnavailableException;
+import com.backendguru.cartservice.marketplace.SellerListingClient;
 import com.backendguru.cartservice.product.ProductClient;
 import com.backendguru.cartservice.product.dto.ProductSnapshot;
 import com.backendguru.common.dto.ApiResponse;
@@ -21,13 +22,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CartServiceTest {
 
   @Mock ProductClient productClient;
+  @Mock SellerListingClient listingClient;
   CartStore store;
   CartService service;
 
   @BeforeEach
   void setUp() {
     store = new InMemoryCartStore();
-    service = new CartService(store, productClient);
+    service = new CartService(store, productClient, listingClient);
   }
 
   private void stubProduct(Long id, int stock, boolean enabled) {

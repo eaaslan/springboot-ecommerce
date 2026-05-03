@@ -9,7 +9,10 @@ public record OrderItemResponse(
     BigDecimal priceAmount,
     String priceCurrency,
     int quantity,
-    Long reservationId) {
+    Long reservationId,
+    Long listingId,
+    Long sellerId,
+    String sellerName) {
 
   public static OrderItemResponse from(OrderItem i) {
     return new OrderItemResponse(
@@ -18,6 +21,9 @@ public record OrderItemResponse(
         i.getPriceAmount(),
         i.getPriceCurrency(),
         i.getQuantity(),
-        i.getReservationId());
+        i.getReservationId(),
+        i.getListingId(),
+        i.getSellerId(),
+        i.getSellerName());
   }
 }

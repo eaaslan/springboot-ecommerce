@@ -35,6 +35,12 @@ public class ListingController {
     return ApiResponse.success(service.publicForProduct(productId));
   }
 
+  /** Single listing by id — used by cart-service when the customer adds a specific offer. */
+  @GetMapping("/api/listings/{id:\\d+}")
+  public ApiResponse<ListingResponse> publicById(@PathVariable Long id) {
+    return ApiResponse.success(service.publicById(id));
+  }
+
   /** Best listing per product (buy box winner). Batched to avoid N+1 from product-service. */
   @GetMapping("/api/listings/best")
   public ApiResponse<Map<Long, ListingResponse>> bestForProducts(

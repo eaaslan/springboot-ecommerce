@@ -237,6 +237,9 @@ public class OrderService {
               .priceAmount(ci.priceAmount())
               .priceCurrency(ci.priceCurrency())
               .quantity(ci.quantity())
+              .listingId(ci.listingId())
+              .sellerId(ci.sellerId())
+              .sellerName(ci.sellerName())
               .build();
       order.addItem(oi);
     }

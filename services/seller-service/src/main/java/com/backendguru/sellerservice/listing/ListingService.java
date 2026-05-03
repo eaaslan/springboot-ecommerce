@@ -30,6 +30,18 @@ public class ListingService {
   // -------- public read paths (for catalog enrichment) --------
 
   @Transactional(readOnly = true)
+  public ListingResponse publicById(Long id) {
+    Listing l =
+        listingRepository
+            .findById(id)
+            .filter(Listing::isEnabled)
+            .orElseThrow(() -> new ResourceNotFoundException("Listing " + id + " not found"));
+    String sellerName =
+        sellerRepository.findById(l.getSellerId()).map(Seller::getBusinessName).orElse(null);
+    return ListingResponse.from(l, sellerName);
+  }
+
+  @Transactional(readOnly = true)
   public List<ListingResponse> publicForProduct(Long productId) {
     List<Listing> listings = listingRepository.findByProductIdAndEnabledTrue(productId);
     Map<Long, String> names = sellerNamesFor(listings);
