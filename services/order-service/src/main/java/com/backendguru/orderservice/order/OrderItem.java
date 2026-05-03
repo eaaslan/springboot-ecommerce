@@ -63,4 +63,8 @@ public class OrderItem {
 
   @Column(name = "seller_name", length = 120)
   private String sellerName;
+
+  /** FK → sub_orders.id; populated by SubOrderSplitter after the order is created. */
+  @Column(name = "sub_order_id")
+  private Long subOrderId;
 }

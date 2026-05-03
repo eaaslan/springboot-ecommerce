@@ -50,6 +50,11 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/api/coupons/**
+        # Marketplace V3: seller-facing sub-order list lives in order-service
+        - id: order-service-seller-orders
+          uri: lb://order-service
+          predicates:
+            - Path=/api/seller-orders/**
         - id: recommendation-service
           uri: lb://recommendation-service
           predicates:
