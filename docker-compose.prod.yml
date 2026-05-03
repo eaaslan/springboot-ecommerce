@@ -126,6 +126,10 @@ services:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
       redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 10s
+      retries: 30
 
   user-service:
     <<: *spring-app-defaults
@@ -210,6 +214,20 @@ services:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
       postgres: { condition: service_healthy }
+
+  # React + Vite SPA served by nginx; nginx also reverse-proxies /api → api-gateway
+  # so the browser only ever talks to one origin (no CORS, JWT cookie/header flows
+  # naturally). 'image:' is the production target (CD pipeline in the FE repo
+  # publishes it). 'build:' is the local-dev fallback — runs when you pass
+  # --build to docker compose, expecting the FE repo at ../springboot-ecommerce-frontend.
+  frontend:
+    image: ghcr.io/eaaslan/ecommerce-frontend:${IMAGE_TAG:-latest}
+    build:
+      context: ../springboot-ecommerce-frontend
+    ports: ["80:80"]
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    restart: unless-stopped
 
 volumes:
   pg-data:
