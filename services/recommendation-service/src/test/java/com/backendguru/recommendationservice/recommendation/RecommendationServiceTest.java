@@ -34,6 +34,7 @@ class RecommendationServiceTest {
         "SKU-" + id,
         name,
         name + " description",
+        null, // imageUrl
         BigDecimal.valueOf(price),
         "TRY",
         stock,
