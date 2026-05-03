@@ -107,7 +107,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,refresh,circuitbreakers,retries
+        include: health,info,metrics,refresh,prometheus,circuitbreakers,retries
   health:
     circuitbreakers:
       enabled: true

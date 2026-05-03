@@ -1,0 +1,36 @@
+# Prometheus config for the compose stack: scrape every Spring service via the
+# container DNS name (no host.docker.internal trick needed because everything
+# runs on the same docker network). Used by docker-compose.yml's prometheus
+# service. The dev variant (host.docker.internal:port) lives in prometheus.yml
+# next to this file.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'spring-services'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+          - 'api-gateway:8080'
+          - 'config-server:8888'
+          - 'discovery-server:8761'
+          - 'user-service:8081'
+          - 'product-service:8082'
+          - 'cart-service:8083'
+          - 'inventory-service:8084'
+          - 'payment-service:8085'
+          - 'order-service:8086'
+          - 'notification-service:8087'
+          - 'recommendation-service:8088'
+          - 'catalog-stream-service:8089'
+          - 'seller-service:8090'
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):(.+)'
+        target_label: instance
+        replacement: '$1'
+      - source_labels: [__address__]
+        regex: '([^:]+):(.+)'
+        target_label: application
+        replacement: '$1'

@@ -60,4 +60,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,refresh
+        include: health,info,metrics,refresh,prometheus

@@ -101,7 +101,8 @@ services:
     image: prom/prometheus:v2.55.0
     ports: ["9090:9090"]
     volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Compose-aware variant — scrapes via container DNS instead of host.docker.internal
+      - ./docker/prometheus/prometheus.docker.yml:/etc/prometheus/prometheus.yml:ro
     logging: *default-logging
 
   grafana:
