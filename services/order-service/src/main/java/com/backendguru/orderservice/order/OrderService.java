@@ -260,7 +260,10 @@ public class OrderService {
   @Transactional
   protected void markCancelled(Order order, String reason) {
     order.setStatus(OrderStatus.CANCELLED);
-    order.setFailureReason(reason);
+    // failure_reason column is VARCHAR(255) — truncate so a long stack message
+    // doesn't crash the compensation step itself.
+    order.setFailureReason(
+        reason == null ? null : reason.substring(0, Math.min(reason.length(), 250)));
     orderRepository.save(order);
     metrics.incrementCancelled(classifyReason(reason));
   }

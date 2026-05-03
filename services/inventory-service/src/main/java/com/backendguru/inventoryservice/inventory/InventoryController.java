@@ -23,6 +23,20 @@ public class InventoryController {
 
   private final InventoryService service;
 
+  /**
+   * Demo / seed convenience: create an inventory row for a brand-new product. Idempotent — does
+   * nothing if the row already exists. Plain POST, no auth needed (this stack runs the gateway as
+   * the security boundary; only admin paths reach here in practice).
+   */
+  @PostMapping("/items")
+  public ResponseEntity<ApiResponse<InventoryStatusResponse>> upsert(
+      @RequestBody java.util.Map<String, Object> req) {
+    Long productId = ((Number) req.get("productId")).longValue();
+    int availableQty = ((Number) req.getOrDefault("availableQty", 0)).intValue();
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.success(service.upsert(productId, availableQty)));
+  }
+
   @PostMapping("/reservations")
   public ResponseEntity<ApiResponse<ReservationResponse>> reserve(
       @Valid @RequestBody ReserveRequest req) {
