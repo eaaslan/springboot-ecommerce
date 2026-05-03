@@ -38,11 +38,15 @@ if ! curl -fs -m 3 "$API/api/products?page=0&size=1" >/dev/null 2>&1; then
 fi
 echo "  ✓ frontend + gateway + product-service healthy"
 
-# 1. alice ADMIN
-step "alice@example.com → ADMIN"
+# 1. Ensure alice exists + ADMIN role
+step "alice@example.com → register + promote to ADMIN"
+# Register if missing (409 = already exists, fine)
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"password123","name":"Alice Admin"}' \
+  "$API/api/auth/register" >/dev/null || true
 docker compose exec -T postgres psql -U user -d userdb -c \
   "UPDATE users SET role='ADMIN' WHERE email='alice@example.com';" >/dev/null
-echo "  ✓ alice promoted (or already admin)"
+echo "  ✓ alice registered + promoted"
 
 # 2. Seed
 step "Seed çalıştırılıyor (varsa skip eder, idempotent)"
@@ -60,38 +64,44 @@ API_URL="$API" node scripts/seed/backfill-images.js 2>&1 | tail -2
 step "Inventory backfill (eksikleri tamamlıyor)"
 API_URL="$API" INVENTORY_URL="$INV" node scripts/seed/backfill-inventory.js 2>&1 | tail -2
 
-# 5. Test order: buyer1 + listing'li bir ürün
-step "Test order yerleştiriliyor (buyer1 → bir listing)"
+# 5. Test orders — her seed satıcısı için en az bir sipariş
+#    (videoda "demo paneli'nden satıcıya geç → sipariş gözüksün" akışı için)
+step "Test orders yerleştiriliyor (her satıcı için en az 1 sipariş)"
 TOKEN=$(curl -s -X POST -H "Content-Type: application/json" \
   -d '{"email":"buyer1@example.com","password":"password123"}' \
   "$API/api/auth/login" | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['accessToken'])")
-LISTED=$(curl -s "$API/api/products?page=2&size=10" | python3 -c "
-import json,sys
-for p in json.load(sys.stdin)['data']['content']:
-    if p.get('bestListing'):
-        print(p['id'], p['bestListing']['id'])
-        break")
-PID=$(echo "$LISTED" | awk '{print $1}')
-LID=$(echo "$LISTED" | awk '{print $2}')
 
-if [ -z "$PID" ]; then
-  warn "Listing'li ürün bulunamadı, test order atlanıyor"
-else
+# Her satıcı için ilk listing'ini seç → o ürünü siparişe ekle
+SELLER_LISTINGS=$(node -e '
+async function main() {
+  const r = await fetch("'$API'/api/products?page=0&size=200");
+  const products = (await r.json()).data.content;
+  const seenSellers = new Set();
+  for (const p of products) {
+    // Her ürün için bestListing tek bir satıcıyı veriyor — bestListing.id ve sellerId
+    if (p.bestListing && !seenSellers.has(p.bestListing.sellerId)) {
+      seenSellers.add(p.bestListing.sellerId);
+      console.log(p.id + "," + p.bestListing.id + "," + p.bestListing.sellerName);
+    }
+  }
+}
+main();
+')
+ORDER_COUNT=0
+echo "$SELLER_LISTINGS" | while IFS=, read -r PID LID NAME; do
+  [ -z "$PID" ] && continue
   curl -s -X DELETE -H "Authorization: Bearer $TOKEN" "$API/api/cart" >/dev/null
   curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
     -d "{\"productId\":$PID,\"quantity\":1,\"listingId\":$LID}" \
     "$API/api/cart/items" >/dev/null
-
-  ORDER_ID=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  RESULT=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
     -H "Idempotency-Key: $(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)" \
     -d '{"card":{"holderName":"Demo","number":"4111111111111111","expireMonth":"12","expireYear":"2030","cvc":"123"}}' \
-    "$API/api/orders" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data']['id'] if d.get('success') else 0)")
-  if [ "${ORDER_ID:-0}" -gt 0 ]; then
-    echo "  ✓ test order #$ORDER_ID confirmed"
-  else
-    warn "Order placement failed; payout step boş tablo olarak kalacak"
+    "$API/api/orders" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['data']['id'] if d.get('success') else 0)" 2>/dev/null)
+  if [ "${RESULT:-0}" -gt 0 ]; then
+    echo "  ✓ order #$RESULT → $NAME"
   fi
-fi
+done
 
 # 6. Admin payout batch
 step "Admin payout batch (bugün için)"

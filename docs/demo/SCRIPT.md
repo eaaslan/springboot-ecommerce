@@ -172,6 +172,12 @@ olsun.
 
 ---
 
+> **NOT (kayıt sırasında)**: Bu sipariş hangi satıcıdan geldiyse, o
+> satıcıya geçince incoming orders'da görüneceğiz — script bunu
+> aşağıda açıklıyor. prep-demo.sh her seed satıcısına bir test sipariş
+> düşürdüğü için demo paneli'nden hangi satıcıya tıklasanız
+> /seller/orders'da en az 1 sipariş gözükecek.
+
 ### 3:00 – 4:00 · Satıcı olma akışı
 
 **Tıkla:** Header → "Become a Seller"
@@ -191,8 +197,17 @@ olsun.
 
 **Söyle:**
 
-> "Onayladım. Saniyeler içinde aktif satıcı oldu. Artık ürün listeleyebilir,
-> sipariş alabilir."
+> "Onayladım. Saniyeler içinde aktif satıcı oldu."
+
+**Tıkla:** `/demo` → seed satıcılardan birine tıkla (örn TechMart) → `/seller/dashboard` → "Incoming orders"
+
+**Söyle:**
+
+> "Şimdi de seed satıcılarımızdan birine geçelim — TechMart Elektronik'e.
+> Burası satıcının kendi paneli: dashboard'da iş özeti, listings'te kendi
+> ürünleri, ve incoming orders'ta kendisine gelen siparişler görünüyor.
+> Az önce buyer1'in verdiği sipariş bu listede — sub-order id, müşteri,
+> komisyon ve net ödenecek tutar."
 
 ---
 
