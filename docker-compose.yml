@@ -222,6 +222,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/inventory-service
+    # Exposed so the host-side seed script (scripts/seed/seed.js) can hit
+    # POST /api/inventory/items directly when populating fresh products.
+    ports: ["8084:8084"]
     environment:
       <<: *spring-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventorydb
