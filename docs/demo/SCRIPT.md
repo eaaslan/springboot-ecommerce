@@ -66,7 +66,13 @@ olsun.
 > "Burası ana iş klasörü. Her bir alt klasör tek bir işten sorumlu ayrı
 > bir program — kullanıcı yönetimi, ürün, sepet, sipariş, ödeme, satıcı,
 > bildirim gibi. Bunlara microservice deniyor, hepsi birbirinden
-> bağımsız çalışıyor."
+> bağımsız çalışıyor.
+>
+> Birkaç servis biraz farklı: **recommendation** servisi öneri motoru,
+> hem siteye hem de yapay zekaya bağlanıyor. **catalog-stream** ise hızlı
+> okuma için tasarlanmış alternatif bir servis — Spring'in reactive (yani
+> non-blocking) tarafıyla yazıldı, çok yüksek trafik altında bile
+> performans kaybetmiyor."
 
 **Tıkla:** `infrastructure/` klasörü.
 
@@ -124,6 +130,13 @@ olsun.
 > satıcı aynı ürünü farklı fiyatla satabiliyor. Site otomatik olarak en
 > uygun teklifi seçip ön plana koyuyor — buna 'buy-box' deniyor, n11 ve
 > Trendyol da aynı sistemi kullanıyor."
+
+**Söyle (Recommended for you bandının altındayken kısa):**
+
+> "Üstte 'Recommended for you' bandı var — bu öneriler ayrı bir servisten
+> geliyor. Kullanıcının daha önce baktığı ürün kategorisine göre benzer
+> ürünleri sıralıyor, basit bir benzerlik algoritmasıyla. Sonra göreceğiz,
+> aynı servis yapay zekaya da açılıyor."
 
 **Tıkla:** Listing'li bir ürünü aç.
 
@@ -243,9 +256,9 @@ olsun.
 
 **Söyle:**
 
-> "Bir bonus — projeye yapay zeka erişimi ekledim. Claude Desktop, Cursor
-> gibi yapay zeka asistanları artık doğrudan benim ürünlerimi
-> sorgulayabilir."
+> "Bir bonus — biraz önce bahsettiğim öneri servisini yapay zekaya da
+> açtım. Yani aynı servis hem siteye 'sana özel öneriler' hem de Claude
+> Desktop, Cursor gibi yapay zeka asistanlarına ürün arama hizmeti veriyor."
 
 **Yaz:**
 ```
