@@ -1,6 +1,7 @@
 # 10 dakikalık demo videosu — basit anlatım
 
 Mülakat için sade, anlaşılır bir tanıtım. Konuşma dili, kısa cümleler.
+**İlk 2 dakika proje yapısı**, sonrası canlı demo.
 
 ## Kayıttan ÖNCE
 
@@ -25,6 +26,10 @@ Tarayıcıda şu sekmeleri sırasıyla aç ve `Cmd+Shift+R` ile hard reload yap:
 | 4 | http://localhost:9411 | Zipkin |
 | 5 | https://github.com/eaaslan/springboot-ecommerce | GitHub |
 
+**IDE'yi (IntelliJ veya VS Code) de açık tut**, ilk 2 dakikada proje
+yapısını gösterirken kullanacağız. Project view'da kök klasör görünür
+olsun.
+
 ---
 
 ## Kayıt — dakika dakika
@@ -33,168 +38,248 @@ Tarayıcıda şu sekmeleri sırasıyla aç ve `Cmd+Shift+R` ile hard reload yap:
 
 ---
 
-### 0:00 – 0:30 · Açılış
+### 0:00 – 0:20 · Açılış
 
 **Söyle:**
 
-> "Merhaba, bu projede bir e-ticaret sitesi geliştirdim. n11 veya Trendyol gibi, bir sitede hem kendi ürünlerini koyabilen birden fazla satıcı var, hem de müşteriler ürün alıp yorum yapabiliyor.
->
-> Backend tarafında 13 ayrı küçük servis var — her biri kendi işine bakıyor. Frontend React ile yazıldı. Tek komutla çalıştırılabiliyor.
->
-> Şimdi adım adım göstereyim."
+> "Merhaba, bu projede n11 ya da Trendyol gibi çok satıcılı bir e-ticaret
+> sitesi geliştirdim. Önce projenin yapısını göstereyim, sonra siteyi canlı
+> kullanırken anlatacağım."
 
-**Ekran:** README'nin üst kısmı, mimari diyagram.
+**Ekran:** README'nin üst kısmı veya doğrudan IDE.
 
 ---
 
-### 0:30 – 2:30 · Müşteri akışı
+### 0:20 – 2:00 · Proje yapısı turu (yeni)
+
+**Tıkla:** IDE'de proje köküne git.
 
 **Söyle:**
 
-> "İlk olarak müşteri tarafına bakalım. Bir login switcher hazırladım — videolarda her seferinde şifre yazmak zorunda kalmayayım diye."
+> "Proje iki ana parçadan oluşuyor. Backend Spring Boot ile yazıldı,
+> frontend React. İkisi ayrı repository'de. Şimdi backend'in içine bakalım."
 
-**Tıkla:** `/demo` sekmesi → "Buyer #1" → "Login & go to /"
-
-**Ekran:** Ana sayfa, ürün grid'i.
+**Tıkla:** `services/` klasörünü aç.
 
 **Söyle:**
 
-> "İşte ana sayfa. n11 görünümlü kartlar, ürün başına satıcı bilgisi, fiyat ve stok. Her ürünün altında 'Sold by ...' yazıyor — bu ürünü hangi satıcının verdiğini gösteriyor.
+> "Burası kalbi. 11 ayrı backend servisi var. Her biri tek bir işi
+> yapıyor:
 >
-> Birden fazla satıcı aynı ürünü farklı fiyatla satabiliyor. Site otomatik olarak en uygun teklifi seçip ön plana koyuyor — buna 'buy-box' deniyor, n11 ve Trendyol da aynı sistemi kullanıyor."
+> - **user-service** kullanıcı kaydı, login, token üretiyor.
+> - **product-service** ürün kataloğu, fiyat, stok.
+> - **cart-service** müşterinin sepetini tutuyor — bu Redis'te, çünkü
+>   sepet hızlı değişen bir şey, kalıcı veritabanı yerine bellekte.
+> - **inventory-service** stok takibi, sipariş anında ürünü ayırma.
+> - **payment-service** ödeme — Iyzico'ya bağlandı.
+> - **order-service** sipariş akışını yönetiyor — burada saga var.
+> - **notification-service** sipariş onayı gibi mesajları gönderiyor.
+> - **recommendation-service** öneri motoru, ayrıca yapay zekaya da
+>   açılıyor.
+> - **catalog-stream-service** alternatif hızlı okuma yolu.
+> - **seller-service** satıcı kayıtları, listemeleri, yorumlar.
+>
+> 11 servis çok gibi görünebilir ama mantığı şu: bir kısmı çökerse
+> diğerleri çalışmaya devam ediyor. Mesela ödeme servisi kapansa
+> ürün gezme akışı bozulmuyor. Buna **microservice** mimarisi deniyor.
+> Aslında bu büyüklükte bir proje için fazlasıyla detaylı, tek monolith
+> uygulama da yeterdi. Ben **microservice'i öğrenmek için** bilinçli
+> olarak bu yapıyı seçtim."
 
-**Tıkla:** Listing'li bir ürünü aç (ikinci sayfadan biri).
-
-**Ekran:** Ürün detay sayfası.
+**Tıkla:** `infrastructure/` klasörünü aç.
 
 **Söyle:**
 
-> "Ürün detay sayfası. Sağda fiyat ve sepete ekleme butonu. Aşağıda 'diğer satıcılar' tablosu — aynı ürünü daha pahalıya satan satıcılar burada."
+> "Burada 3 yardımcı servis var. Bunlar asıl iş yapmıyor ama servislerin
+> birbirini bulmasını sağlıyor:
+>
+> - **api-gateway** dışarıdan gelen tüm isteklerin tek giriş kapısı.
+>   JWT kontrolü burada, sonra hangi servise gideceği burada
+>   kararlaştırılıyor.
+> - **discovery-server** hangi servis nerede çalışıyor haritası.
+>   Eureka kullandım — Spring'in standart aracı.
+> - **config-server** bütün servislerin ayar dosyaları burada
+>   toplanıyor."
 
-**Tıkla:** Quantity 1 → "Add to Cart" → Cart sekmesi
-
-**Ekran:** Sepet.
+**Tıkla:** `shared/common/` klasörünü aç.
 
 **Söyle:**
 
-> "Sepete eklendi. Ürünün altında satıcı adı duruyor — sepetin hangi satıcıyla bağlantılı olduğu hatırlanıyor."
+> "Tüm servisler aynı yardımcı kodu kullanıyor — hata mesajı formatı,
+> response zarfı, log filter'ları. Tekrar tekrar yazmamak için ortak bir
+> kütüphaneye topladım. Burada duruyor."
 
-**Tıkla:** "Checkout" → kart bilgileri zaten dolu → "Place order"
-
-**Ekran:** Sipariş onay sayfası → order detail.
-
-**Söyle (yavaş, önemli):**
-
-> "Bu butona basınca arkada çok şey oluyor. Önce kart kontrol ediliyor — Iyzico'nun gerçek API'sine bağladım, sandbox'ta gerçek ödeme isteği gidiyor.
->
-> Aynı anda stok ayrılıyor, sipariş veritabanına yazılıyor, satıcıya ödenecek tutar hesaplanıyor — yani komisyonu düşüp net miktarı belirliyor.
->
-> En sonunda da Kafka üzerinden bir bildirim mesajı gidiyor, 'sipariş onaylandı' diye. Bu mesajı bildirim servisi yakalıyor.
->
-> Hepsi tek bir tıklamayla. Eğer ortada bir hata olursa — mesela kart reddedilirse — sistem geri sarıyor, stoku iade ediyor, sipariş iptal oluyor."
-
-**Tıkla:** Order detail'in "Per-seller breakdown" kısmını göster.
+**Tıkla:** Kök klasördeki üç compose dosyasını göster:
+`docker-compose.yml`, `docker-compose.prod.yml`, `docker-compose.infra.yml`.
 
 **Söyle:**
 
-> "Burada görüyorsunuz, satıcı başına ayrı satır var. Her satıcının aldığı tutar, bizim aldığımız komisyon, satıcıya ödenecek net miktar — hepsi ayrı ayrı tutuluyor."
+> "Üç tane compose dosyası var, niye olduğunu açıklayayım — sıkça
+> sorulan bir soru:
+>
+> **`docker-compose.yml`** ana dosya. Birisi repo'yu klonlar, tek komut
+> der: `docker compose up --build`. Hiçbir şey kurmasına gerek yok, 10
+> dakikada her şey ayağa kalkıyor.
+>
+> **`docker-compose.prod.yml`** sunucuya deploy ederken kullanılıyor —
+> bu sefer kod build etmiyor, GitHub'tan hazır image'ları çekiyor. Çok
+> daha hızlı.
+>
+> **`docker-compose.infra.yml`** geliştirme için. Sadece veritabanı, cache
+> gibi altyapıyı açıyor, servisleri ben IDE'den çalıştırıyorum. Kodu
+> değiştirip test ederken çok pratik."
+
+**Tıkla:** `aws/` klasörünü aç.
+
+**Söyle:**
+
+> "AWS'te de çalışsın diye ayrı bir deploy paketi var. RDS ve ElastiCache
+> kullanan farklı bir compose dosyası, Beanstalk ayarları, adım adım
+> rehber."
+
+**Tıkla:** `docs/` klasörünü aç.
+
+**Söyle:**
+
+> "Dokümanlar burada — README, üretim ortamı kontrol listesi, demo
+> scripti, hatta API koleksiyonu. `scripts/seed/` altında demo verisi
+> üreten Node script'leri var."
+
+**Söyle (toparla):**
+
+> "Kısacası: 11 backend servisi, 3 altyapı servisi, ortak kütüphane,
+> üç farklı senaryoda çalışan compose dosyaları, AWS deploy paketi
+> ve dokümantasyon. Şimdi siteyi canlı kullanırken anlatmaya başlayalım."
 
 ---
 
-### 2:30 – 4:00 · Satıcı olma akışı
+### 2:00 – 3:30 · Müşteri akışı
+
+**Tıkla:** Tarayıcı → `/demo` sekmesi → "Buyer #1" → "Login"
 
 **Söyle:**
 
-> "Şimdi 'satıcı olmak istiyorum' butonuna basalım. Demo için bu kısımda hazır şablonlar koydum, tek tıkla form dolacak."
+> "Demo için bir login switcher hazırladım — videoda her seferinde şifre
+> yazmak istemediğim için. Buyer1 ile giriyorum."
 
-**Tıkla:** Header'dan "Become a Seller"
-
-**Ekran:** Başvuru formu, üstte 3 hazır şablon.
-
-**Tıkla:** "Anadolu Ticaret — Use this draft" → form doldu → "Submit application"
+**Ekran:** Ana sayfa.
 
 **Söyle:**
 
-> "Başvuru gönderildi. Şu an 'PENDING' durumda — admin onayı bekliyor."
+> "Ana sayfa. Ürün kartları, fiyat, stok, satıcı bilgisi. Birden fazla
+> satıcı aynı ürünü farklı fiyatla satabiliyor. Site otomatik olarak en
+> uygun teklifi seçip ön plana koyuyor — buna 'buy-box' deniyor, n11 ve
+> Trendyol da aynı sistemi kullanıyor."
 
-**Tıkla:** `/demo` sekmesi → Alice (admin) → /admin/products'a düşer
-
-**Söyle:**
-
-> "Admin tarafına geçtim. Sol üstte Products, Coupons, Sellers, Payouts var. Sellers'a tıklıyorum."
-
-**Tıkla:** Header → "Sellers" → status filter PENDING
-
-**Ekran:** PENDING başvuru görünüyor.
-
-**Tıkla:** "Approve" butonu
+**Tıkla:** Listing'li bir ürünü aç.
 
 **Söyle:**
 
-> "Onayladım. Saniyeler içinde satıcı aktif oldu. Artık ürün listeleyebilir, sipariş alabilir."
+> "Ürün detayı. Sağda fiyat ve sepete ekleme. Aşağıda 'diğer satıcılar'
+> tablosu — aynı ürünü daha pahalıya satan satıcılar."
+
+**Tıkla:** "Add to Cart" → Cart → "Checkout" → "Place order"
+
+**Söyle (yavaş):**
+
+> "Bu butona basınca arkada çok şey oluyor. Önce kart kontrol ediliyor —
+> Iyzico'nun gerçek API'sine bağladım. Aynı anda stok ayrılıyor, sipariş
+> veritabanına yazılıyor, satıcıya ödenecek tutar hesaplanıyor.
+>
+> En son Kafka üzerinden bir bildirim mesajı gidiyor. Bu mesajı bildirim
+> servisi yakalıyor.
+>
+> Hepsi tek tıkla. Bir hata olursa sistem geri sarıyor — stoku iade
+> ediyor, sipariş iptal oluyor."
+
+**Tıkla:** Order detail'in "Per-seller breakdown" kısmı.
+
+**Söyle:**
+
+> "Burada görüyorsunuz, satıcı başına ayrı satır var. Her satıcının
+> aldığı tutar, bizim aldığımız komisyon, satıcıya ödenecek net miktar
+> ayrı ayrı tutuluyor."
 
 ---
 
-### 4:00 – 5:00 · Para akışı (payout)
+### 3:30 – 4:30 · Satıcı olma akışı
+
+**Tıkla:** Header → "Become a Seller"
+
+**Söyle:**
+
+> "Şimdi 'satıcı olmak istiyorum' butonuna basalım. Demo için hazır
+> şablonlar koydum, tek tıkla form dolacak."
+
+**Tıkla:** "Anadolu Ticaret — Use this draft" → "Submit"
+
+**Söyle:**
+
+> "Başvuru gönderildi, PENDING durumda. Şimdi admin tarafına geçiyorum."
+
+**Tıkla:** `/demo` → Alice → header → "Sellers" → PENDING filter → "Approve"
+
+**Söyle:**
+
+> "Onayladım. Saniyeler içinde aktif satıcı oldu. Artık ürün listeleyebilir,
+> sipariş alabilir."
+
+---
+
+### 4:30 – 5:15 · Para akışı
 
 **Tıkla:** Header → "Payouts"
 
-**Ekran:** Payouts tablosu (prep-demo.sh sayesinde dolu).
-
 **Söyle:**
 
-> "Burası ödeme listesi. Trendyol'un mantığı: müşteriden para alındı ama satıcıya hemen verilmez — haftada bir veya 15 günde bir toplu ödeme yapılır.
+> "Burası ödeme listesi. Trendyol'un mantığı: müşteriden para alındı ama
+> satıcıya hemen verilmez — haftada bir toplu ödeme yapılır.
 >
-> Ben de aynısını yaptım. Admin tarih aralığı seçer, 'Run payout' der, sistem o aralıktaki tüm siparişleri satıcı bazında toplayıp tek satırda gösterir.
+> Admin tarih aralığı seçer, 'Run payout' der, sistem tüm siparişleri
+> satıcı bazında toplayıp tek satırda gösterir. Burada 'Bu hafta TechMart'a
+> 4500 TL ödeyeceğiz' yazıyor, içinde komisyon düşülmüş halde.
 >
-> Mesela burada 'Bu hafta TechMart'a 4.500 TL ödeyeceğiz' yazıyor, içinde 8% komisyon düşülmüş hâlde.
->
-> Bir özelliği daha var: aynı tarihi tekrar bastırmak istesem yeni satır oluşmuyor — kontrol var, çift ödeme olamıyor."
+> Bir özellik daha: aynı tarihi tekrar bastırmak istesem yeni satır
+> oluşmuyor. Çift ödeme imkânsız."
 
 ---
 
-### 5:00 – 6:00 · Bir siparişin yolculuğu (★)
+### 5:15 – 6:15 · Bir siparişin yolculuğu (★)
 
-**Tıkla:** Zipkin sekmesi (http://localhost:9411)
-
-**Söyle:**
-
-> "Şimdi 'az önce verdiğim sipariş kim ne yaptı, ne kadar sürdü' sorusunu cevaplayan ekrana gelelim. Buna 'distributed tracing' deniyor."
-
-**Tıkla:** Service name: `api-gateway` → Run query → en son trace'i seç
-
-**Ekran:** Trace timeline.
+**Tıkla:** Zipkin sekmesi → service: `api-gateway` → Run query → en son trace
 
 **Söyle:**
 
-> "Bakın, tek bir 'sipariş ver' butonu 8 farklı servisi geziyor:
+> "Şimdi 'az önce verdiğim sipariş arkada kim ne yaptı, ne kadar sürdü'
+> sorusunu cevaplayan ekrana gelelim.
 >
-> Önce gateway giriyor — yani trafik kapısı. Sonra sipariş servisi devreye giriyor.
-> Sepet servisinden cart bilgisini çekiyor.
-> Stok servisinden ürünü ayırıyor.
-> Ödeme servisini çağırıyor — Iyzico'ya istek gidiyor.
-> Satıcı servisinden komisyon oranını öğreniyor.
-> En son Kafka'ya bildirim mesajı atıyor.
+> Bakın, tek bir 'sipariş ver' butonu 8 farklı servisi geziyor:
 >
-> Hepsi sıralı, hepsi mili saniye düzeyinde ölçülüyor. Bir yerde gecikme olursa burada hemen görünüyor."
+> Önce gateway giriyor — yani trafik kapısı. Sonra sipariş servisi
+> devreye giriyor. Sepet servisinden cart bilgisini çekiyor. Stok
+> servisinden ürünü ayırıyor. Ödeme servisini çağırıyor. Satıcı
+> servisinden komisyon oranını öğreniyor. Sonra Kafka'ya bildirim
+> atıyor.
+>
+> Hepsi sıralı, mili saniye düzeyinde ölçülüyor. Bir yerde gecikme
+> olursa burada hemen görünüyor."
 
 ---
 
-### 6:00 – 7:00 · İzleme paneli
+### 6:15 – 7:00 · İzleme paneli
 
-**Tıkla:** Grafana sekmesi → "Microservices Overview" dashboard
+**Tıkla:** Grafana → "Microservices Overview"
 
 **Söyle:**
 
 > "Burası Grafana — production'da kullanılan izleme aracı.
 >
 > Sol üstte canlı istek sayısı: dakikada kaç istek geliyor.
-> Yanında hata oranı: ne kadar 4xx, 5xx dönüyoruz.
-> Altta gecikme grafikleri: en yavaş istek hangi servisteydi.
+> Yanında hata oranı.
+> Altta gecikme grafikleri.
 >
-> Bunların hepsi Prometheus'tan geliyor. Her servis kendi metriklerini açıyor, Prometheus 15 saniyede bir çekiyor, Grafana çiziyor.
->
-> Ek olarak iş metrikleri de var — kaç sipariş verildi, kaç tanesi iptal oldu, hangi sebeple iptal oldu. Bunları da business tarafı isteyebilir."
+> İş tarafı için de ekstra metrikler var — kaç sipariş verildi, kaç
+> tanesi iptal oldu. Business tarafının isteyeceği şeyler."
 
 ---
 
@@ -204,72 +289,69 @@ Tarayıcıda şu sekmeleri sırasıyla aç ve `Cmd+Shift+R` ile hard reload yap:
 
 **Söyle:**
 
-> "Bir bonus daha ekledim — projeye yapay zeka erişimi.
->
-> Claude Desktop, Cursor gibi yapay zeka asistanları artık doğrudan benim ürünlerimi sorgulayabilir. 'MCP server' adında yeni bir standart kullandım."
+> "Bir bonus — projeye yapay zeka erişimi ekledim. Claude Desktop, Cursor
+> gibi yapay zeka asistanları artık doğrudan benim ürünlerimi
+> sorgulayabilir."
 
-**Yaz:** (Claude'a)
+**Yaz:**
 ```
 What headphones do you have under 2000 TRY?
 ```
 
-**Ekran:** Claude `searchProducts` tool'unu çağırır, ürünleri listeler.
-
 **Söyle:**
 
-> "Bakın, ben 'hangi kulaklık var 2000 liranın altında' diye sordum, Claude direkt benim siteme bağlandı, ürünleri çekti, listeledi.
+> "Bakın, 'hangi kulaklık var 2000 liranın altında' diye sordum, Claude
+> direkt benim siteme bağlandı, ürünleri çekti, listeledi.
 >
-> Yarın yapay zekanın e-ticaret platformlarına nasıl bağlanacağı konusunda öncü bir özellik bu. Şu an sadece arama, benzer ürün ve öneri var ama genişletilebilir."
+> Yarın yapay zekanın e-ticarete nasıl bağlanacağı konusunda öncü bir
+> özellik bu."
 
 ---
 
-### 7:45 – 8:45 · Nasıl çalıştırılır
+### 7:45 – 8:30 · Nasıl çalıştırılır
 
-**Tıkla:** Terminal aç, README'yi göster.
-
-**Söyle:**
-
-> "Projeyi en güzel yanı: tek komutla çalışıyor.
->
-> Yeni biri repo'yu klonlasın, `docker compose up --build` desin, 10 dakika içinde 21 container ayağa kalkıyor:
-> - 13 backend servisi
-> - Frontend
-> - Veritabanı, cache, mesaj kuyrukları, izleme araçları
->
-> Bilgisayara hiçbir şey kurmasına gerek yok — Java da, Maven da, Node da yok. Hepsi Docker içinde."
-
-**Tıkla:** GitHub → Actions sekmesi.
+**Tıkla:** Terminal → README
 
 **Söyle:**
 
-> "Ayrıca her main branch'a push'ladığımda otomatik build çalışıyor — GitHub'ın kendi sistemi (Actions). Image'lar otomatik üretilip GitHub'ın container kayıtçısına atılıyor. Sunucuya da tek komutla deploy edilebiliyor.
->
-> AWS Elastic Beanstalk için ayrı bir deploy paketi de hazırladım — `aws/` klasöründe."
+> "Projenin en güzel yanı: tek komutla çalışıyor. Yeni biri repo'yu
+> klonlasın, `docker compose up --build` desin, 10 dakika içinde 21
+> container ayağa kalkıyor — 13 backend, frontend, veritabanı, cache,
+> mesaj kuyrukları, izleme. Bilgisayara hiçbir şey kurmasına gerek yok."
+
+**Tıkla:** GitHub → Actions
+
+**Söyle:**
+
+> "Her main branch push'unda otomatik build çalışıyor — image'lar GitHub'ın
+> kayıtçısına atılıyor. AWS Beanstalk için ayrı bir deploy paketi de var."
 
 ---
 
-### 8:45 – 9:30 · Geçmiş
+### 8:30 – 9:15 · Geçmiş
 
-**Tıkla:** README → Roadmap tablosu.
+**Tıkla:** README → Roadmap
 
 **Söyle:**
 
-> "Proje 13 ayrı aşamada büyüdü:
+> "Proje 13 aşamada büyüdü. İlk 12 aşamada altyapı hazırlandı: kullanıcı
+> girişi, ürün listesi, sepet, sipariş, ödeme, mesajlaşma, izleme, yapay
+> zeka. 13. aşamada marketplace eklendi — dört adımda: önce satıcı
+> kayıtları, sonra sepetin satıcıya bağlanması, sonra para akışının
+> ayrılması, en son yorumlar ve iadeler.
 >
-> 1. baştan 12'ye kadar: temel altyapı, kullanıcı girişi, ürün listesi, sepet, sipariş, ödeme, mesajlaşma, izleme, yapay zeka.
-> 2. 13. aşamada marketplace'e dönüştü: dört adımda eklendi — önce satıcı kayıtları, sonra sepetin satıcıya bağlanması, sonra para akışının ayrılması, en son yorumlar ve iadeler.
->
-> Her aşama için git'te ayrı tag bıraktım — istediğim noktaya geri dönebilirim."
+> Her aşama git'te ayrı tag — istediğim noktaya geri dönebilirim."
 
 ---
 
-### 9:30 – 10:00 · Kapanış
+### 9:15 – 10:00 · Kapanış
 
-**Tıkla:** README üstüne dön.
+**Tıkla:** README üstüne dön
 
 **Söyle:**
 
-> "Son olarak: 80'in üzerinde test var, hepsi otomatik koşuyor. README'de tüm kurulum adımları yazıyor. Github linki açıklamada.
+> "Son olarak: 80'in üzerinde test var, hepsi otomatik koşuyor. README'de
+> tüm kurulum adımları yazıyor. GitHub linki açıklamada.
 >
 > Soru ve geri bildiriminize açığım, teşekkür ederim."
 
@@ -286,17 +368,17 @@ What headphones do you have under 2000 TRY?
 
 ## Voice-over taktikleri
 
-- **Yavaş konuş.** "Hızlı ve düzgün" yerine "yavaş ama akıcı" çok daha iyi izleniyor.
-- **"Şu an buradayım, şuraya geçiyorum"** — yönlendirme bilgisi izleyiciyi rahatlatır.
-- **"Şimdi şuna dikkat edin..."** — wow moment'ten önce vurgu yap.
-- "Mesela", "yani", "bakın" gibi konuşkan kelimeler doğal hissettirir, mülakatçı senaryo okuduğunu anlamaz.
-- **Sayı ezberleme.** "8 servis" yerine "yaklaşık on tane" dersen daha akıcı.
-- Bir şeyi atlamak gerekirse "şimdi onu geçiyorum" demek "uhh" demekten iyi.
+- **Yavaş konuş.** "Hızlı ve düzgün" yerine "yavaş ama akıcı".
+- **"Şu an buradayım, şuraya geçiyorum"** — yönlendirme bilgisi.
+- **"Şimdi şuna dikkat edin..."** — wow moment'ten önce vurgu.
+- "Mesela", "yani", "bakın" gibi konuşma dilinden kelimeler doğal hissettirir.
+- **Sayı ezberleme.** "8 servis" yerine "yaklaşık on tane" daha akıcı.
+- Atlamak gerekirse "şimdi onu geçiyorum" demek "uhh" demekten iyi.
 
 ## Kayıttan SONRA
 
 ```bash
-docker compose down -v   # data temizliği
+docker compose down -v
 ```
 
 Başarılar 🎬
