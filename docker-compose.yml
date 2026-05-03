@@ -19,6 +19,14 @@ x-spring-app-defaults: &spring-app-defaults
     EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
     SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888"
     JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+UseG1GC"
+    # Override per-service YAMLs that hardcode localhost — service-specific YAMLs
+    # win over application-docker.yml, so we force the host names with explicit env vars.
+    SPRING_DATA_REDIS_HOST: redis
+    SPRING_DATA_REDIS_PORT: "6379"
+    SPRING_RABBITMQ_HOST: rabbitmq
+    SPRING_RABBITMQ_PORT: "5672"
+    SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
   depends_on:
     config-server: { condition: service_healthy }
     discovery-server: { condition: service_healthy }
@@ -121,10 +129,11 @@ services:
       args:
         MODULE: infrastructure/config-server
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      # native profile keeps the classpath-backed config repo on; docker turns on JSON logging.
+      SPRING_PROFILES_ACTIVE: "native,docker"
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health/readiness || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health || exit 1"]
       interval: 10s
       retries: 30
     restart: unless-stopped
@@ -143,7 +152,7 @@ services:
     depends_on:
       config-server: { condition: service_healthy }
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health/readiness || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health || exit 1"]
       interval: 10s
       retries: 30
     restart: unless-stopped
@@ -162,7 +171,7 @@ services:
       discovery-server: { condition: service_healthy }
       redis: { condition: service_healthy }
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
       retries: 30
 
@@ -174,6 +183,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/user-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/userdb
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
@@ -185,6 +197,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/product-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/productdb
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
@@ -207,6 +222,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/inventory-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventorydb
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
@@ -218,6 +236,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/payment-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/paymentdb
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
@@ -229,6 +250,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/order-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/orderdb
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
@@ -242,6 +266,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/notification-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notificationdb
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
@@ -265,6 +292,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/catalog-stream-service
+    environment:
+      <<: *spring-env
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/productdb
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
@@ -276,6 +306,9 @@ services:
       <<: *build-context
       args:
         MODULE: services/seller-service
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sellerdb
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }

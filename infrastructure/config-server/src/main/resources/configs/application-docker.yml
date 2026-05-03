@@ -1,3 +1,5 @@
+# Profile-wide overrides applied to every service when SPRING_PROFILES_ACTIVE includes "docker".
+# In docker-compose, every dependency lives at its container DNS name on the default port.
 eureka:
   client:
     service-url:
@@ -5,3 +7,22 @@ eureka:
   instance:
     prefer-ip-address: false
     hostname: ${spring.application.name}
+
+spring:
+  data:
+    redis:
+      host: redis
+      port: 6379
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
+  kafka:
+    bootstrap-servers: kafka:9092
+
+# Tracing → in-stack zipkin
+management:
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
