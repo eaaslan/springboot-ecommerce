@@ -1,244 +1,302 @@
-# 10-dakikalık demo videosu — kayıt scripti
+# 10 dakikalık demo videosu — basit anlatım
 
-Spring Boot e-commerce mülakat sunumu. Hedef: **9–10 dakika**, hiç klavye yok,
-bütün veri prefill, geçişler tek tık.
+Mülakat için sade, anlaşılır bir tanıtım. Konuşma dili, kısa cümleler.
 
 ## Kayıttan ÖNCE
 
 ```bash
-# 1. Stack'i kaldır + her şeyi seed'le
+# 1. Proje klasöründe
 cd ~/IdeaProjects/springboot-ecommerce
+
+# 2. Stack'i kaldır
 docker compose up --build -d
-./docs/demo/prep-demo.sh         # ~30sn, her şeyi hazırlar
 
-# 2. Tarayıcıyı aç (Chrome/Firefox)
-#    Aşağıdaki tab'leri ÖNCEDEN aç ve hard reload (Cmd+Shift+R) yap:
-#       Tab 1: http://localhost                  (storefront)
-#       Tab 2: http://localhost/demo             (login switcher)
-#       Tab 3: http://localhost/admin/payouts    (admin payouts — alice'la giriş yaptıktan sonra)
-#       Tab 4: http://localhost:3000             (Grafana — admin/admin)
-#       Tab 5: http://localhost:9411             (Zipkin)
-#       Tab 6: https://github.com/eaaslan/springboot-ecommerce  (GitHub repo)
-
-# 3. Terminal hazırla (kayıt için ayrı pencere)
-#    docker compose ps —t {{.Name}}\t{{.Status}} — sağda küçük tut
-
-# 4. (Opsiyonel) Claude Desktop / Claude Code'ı aç → MCP demo için
-#    claude mcp add --transport sse ecommerce http://localhost:8088/sse
-
-# 5. Tarayıcı zoom %110, font okunabilir olsun
-
-# 6. Bildirimleri kapat (DND mode)
+# 3. Demo verisini hazırla (~30sn)
+./docs/demo/prep-demo.sh
 ```
 
-## Kayıt sırasında zaman çizelgesi
+Tarayıcıda şu sekmeleri sırasıyla aç ve `Cmd+Shift+R` ile hard reload yap:
 
-> **Önerim:** önce sessiz ekran kaydı çek (klavye/fare hareketleri), sonra
-> voice-over ekle. Söyleyeceklerinin metnini bu dosyadan oku.
-
----
-
-### 0:00 – 0:30 · Açılış (30sn)
-
-**Ekran:** README'nin ilk ekranı (architecture diagram bölümünde scroll).
-
-**Söylenecek:**
-> "Merhaba, bu projede production-grade bir e-ticaret platformu kurdum.
-> Spring Boot 3, Spring Cloud 2024, 13 microservis. Multi-seller marketplace, distributed saga, Kafka tabanlı event bus, Iyzico ödeme, Prometheus + Grafana ile observability, ve AI agent'leri için MCP server.
-> Tek `docker compose up --build` ile sıfırdan ayağa. Şimdi sırayla göstereyim."
-
-**Tıklama:** README → "Architecture at a glance" ASCII diagram'ını 5 saniye bekle.
+| # | URL | Niçin |
+|---|---|---|
+| 1 | http://localhost | Site |
+| 2 | http://localhost/demo | Hızlı login |
+| 3 | http://localhost:3000 | Grafana (admin/admin) |
+| 4 | http://localhost:9411 | Zipkin |
+| 5 | https://github.com/eaaslan/springboot-ecommerce | GitHub |
 
 ---
 
-### 0:30 – 2:30 · Müşteri akışı (2dk) — "platform yaşıyor"
+## Kayıt — dakika dakika
 
-**Ekran:** Tab 2 (`/demo`).
-
-**Söylenecek:**
-> "Demo paneli — videolar için bir login switcher hazırladım. 3 grup var: admin, satıcılar, alıcılar. Buyer1 olarak giriyorum."
-
-**Tıklama:** "Buyer #1" → "Login & go to /" butonu.
-
-**Ekran:** Storefront, ürün grid'i.
-
-**Söylenecek:**
-> "n11 tarzında bir storefront — kart-grid, ürün başına 'Sold by X' satırı var. Buy-box algoritmamız: en düşük `price + shipping × 5` skoru kazanır, n11/Trendyol'un mantığıyla aynı. Burada her ürünün arkasında inventory-service'ten **canlı stok** çekiyoruz, Feign + Resilience4j ile fallback'lı."
-
-**Tıklama:** Bir ürünü seç (ikinci-üçüncü sayfadan, listing'li olan iyi).
-
-**Ekran:** Product detail.
-
-**Söylenecek:**
-> "Sağda buy-box: en iyi satıcının fiyatı, sold-by linki, qty seçimi. Aşağıdaki 'Other sellers' panelinde aynı ürünü farklı satıcılar farklı fiyatla satıyor. Ortalama puanı reviews tablosundan otomatik recompute ediyor — yorumları da burada görüyoruz."
-
-**Tıklama:** Qty 1 → "Add to Cart" → Cart.
-
-**Ekran:** Cart sayfası.
-
-**Söylenecek:**
-> "Sepette her satırın altında 'Sold by X' var, satırın hangi satıcıyla bağlı olduğunu unutmuyor."
-
-**Tıklama:** Checkout → Submit (kart `4111-1111-1111-1111` zaten dolu).
-
-**Ekran:** Order confirmation → Order detail.
-
-**Söylenecek (kritik kısım, yavaş konuş):**
-> "Bu tıklama arkada ciddi bir akış başlattı. **7 adımlı saga**: cart-service'ten cart fetch, kupon validate, order PENDING persist, **inventory-service'te stok rezervasyonu**, **payment-service'ten Iyzico charge** — Iyzico SDK'sıyla gerçek non-3D entegrasyonu var, sandbox key set'liyse gerçek API'ye gidiyor. Sonra inventory commit, **sub-orders split** — her satıcı için ayrı sub-order yaratıyor commission ledger'la, **outbox tablosuna event** yazıyor aynı transaction'da, ve **Kafka'ya publish** ediyor. notification-service Kafka'dan tüketiyor, idempotent dedup'la."
-
-**Ekran:** Order detail'in "Per-seller breakdown" bölümünü göster.
-
-**Söylenecek:**
-> "Burada görüyorsunuz: tek bir checkout iki satır oluşturmuş — biri satıcı için, biri platform için. Her birinin commission'ı, payout'u, status'u ayrı tutuluyor."
+> Sessiz ekran kaydı çek + voice-over sonradan. Bu metni oku.
 
 ---
 
-### 2:30 – 4:00 · Marketplace lifecycle (1.5dk) — "n11/Trendyol mantığı"
+### 0:00 – 0:30 · Açılış
 
-**Tıklama:** Tab 2 → /demo → "Buyer #1" hala seçili → header'dan "Become a Seller".
+**Söyle:**
 
-**Ekran:** Seller apply page.
+> "Merhaba, bu projede bir e-ticaret sitesi geliştirdim. n11 veya Trendyol gibi, bir sitede hem kendi ürünlerini koyabilen birden fazla satıcı var, hem de müşteriler ürün alıp yorum yapabiliyor.
+>
+> Backend tarafında 13 ayrı küçük servis var — her biri kendi işine bakıyor. Frontend React ile yazıldı. Tek komutla çalıştırılabiliyor.
+>
+> Şimdi adım adım göstereyim."
 
-**Söylenecek:**
-> "Multi-seller marketplace — herkes satıcı olabilir. Demo için 3 hazır şablon var, tıkla forma düşsün. Anadolu Ticaret'i seçiyorum, Submit."
-
-**Tıklama:** "Anadolu Ticaret — Use this draft" → Submit application → dashboard'a düşer (PENDING).
-
-**Söylenecek:**
-> "Başvuru PENDING durumda. Şimdi admin tarafına geçiyorum."
-
-**Tıklama:** Tab 2 → /demo → Alice → /admin/products'a düşer.
-
-**Söylenecek:**
-> "Admin paneli — Products, Coupons, Sellers, Payouts. Sellers'a giriyorum."
-
-**Tıklama:** Header'dan "Sellers" → /admin/sellers → status filter PENDING.
-
-**Söylenecek:**
-> "Anadolu Ticaret PENDING'de. Approve."
-
-**Tıklama:** Approve → status ACTIVE.
-
-**Söylenecek:**
-> "Saniyeler içinde aktif satıcı oldu. Artık ürün listeleyebilir, sub-order alabilir."
+**Ekran:** README'nin üst kısmı, mimari diyagram.
 
 ---
 
-### 4:00 – 5:00 · Sub-orders + payout (1dk) — "para akışı"
+### 0:30 – 2:30 · Müşteri akışı
 
-**Tıklama:** Header'dan "Payouts" → /admin/payouts.
+**Söyle:**
+
+> "İlk olarak müşteri tarafına bakalım. Bir login switcher hazırladım — videolarda her seferinde şifre yazmak zorunda kalmayayım diye."
+
+**Tıkla:** `/demo` sekmesi → "Buyer #1" → "Login & go to /"
+
+**Ekran:** Ana sayfa, ürün grid'i.
+
+**Söyle:**
+
+> "İşte ana sayfa. n11 görünümlü kartlar, ürün başına satıcı bilgisi, fiyat ve stok. Her ürünün altında 'Sold by ...' yazıyor — bu ürünü hangi satıcının verdiğini gösteriyor.
+>
+> Birden fazla satıcı aynı ürünü farklı fiyatla satabiliyor. Site otomatik olarak en uygun teklifi seçip ön plana koyuyor — buna 'buy-box' deniyor, n11 ve Trendyol da aynı sistemi kullanıyor."
+
+**Tıkla:** Listing'li bir ürünü aç (ikinci sayfadan biri).
+
+**Ekran:** Ürün detay sayfası.
+
+**Söyle:**
+
+> "Ürün detay sayfası. Sağda fiyat ve sepete ekleme butonu. Aşağıda 'diğer satıcılar' tablosu — aynı ürünü daha pahalıya satan satıcılar burada."
+
+**Tıkla:** Quantity 1 → "Add to Cart" → Cart sekmesi
+
+**Ekran:** Sepet.
+
+**Söyle:**
+
+> "Sepete eklendi. Ürünün altında satıcı adı duruyor — sepetin hangi satıcıyla bağlantılı olduğu hatırlanıyor."
+
+**Tıkla:** "Checkout" → kart bilgileri zaten dolu → "Place order"
+
+**Ekran:** Sipariş onay sayfası → order detail.
+
+**Söyle (yavaş, önemli):**
+
+> "Bu butona basınca arkada çok şey oluyor. Önce kart kontrol ediliyor — Iyzico'nun gerçek API'sine bağladım, sandbox'ta gerçek ödeme isteği gidiyor.
+>
+> Aynı anda stok ayrılıyor, sipariş veritabanına yazılıyor, satıcıya ödenecek tutar hesaplanıyor — yani komisyonu düşüp net miktarı belirliyor.
+>
+> En sonunda da Kafka üzerinden bir bildirim mesajı gidiyor, 'sipariş onaylandı' diye. Bu mesajı bildirim servisi yakalıyor.
+>
+> Hepsi tek bir tıklamayla. Eğer ortada bir hata olursa — mesela kart reddedilirse — sistem geri sarıyor, stoku iade ediyor, sipariş iptal oluyor."
+
+**Tıkla:** Order detail'in "Per-seller breakdown" kısmını göster.
+
+**Söyle:**
+
+> "Burada görüyorsunuz, satıcı başına ayrı satır var. Her satıcının aldığı tutar, bizim aldığımız komisyon, satıcıya ödenecek net miktar — hepsi ayrı ayrı tutuluyor."
+
+---
+
+### 2:30 – 4:00 · Satıcı olma akışı
+
+**Söyle:**
+
+> "Şimdi 'satıcı olmak istiyorum' butonuna basalım. Demo için bu kısımda hazır şablonlar koydum, tek tıkla form dolacak."
+
+**Tıkla:** Header'dan "Become a Seller"
+
+**Ekran:** Başvuru formu, üstte 3 hazır şablon.
+
+**Tıkla:** "Anadolu Ticaret — Use this draft" → form doldu → "Submit application"
+
+**Söyle:**
+
+> "Başvuru gönderildi. Şu an 'PENDING' durumda — admin onayı bekliyor."
+
+**Tıkla:** `/demo` sekmesi → Alice (admin) → /admin/products'a düşer
+
+**Söyle:**
+
+> "Admin tarafına geçtim. Sol üstte Products, Coupons, Sellers, Payouts var. Sellers'a tıklıyorum."
+
+**Tıkla:** Header → "Sellers" → status filter PENDING
+
+**Ekran:** PENDING başvuru görünüyor.
+
+**Tıkla:** "Approve" butonu
+
+**Söyle:**
+
+> "Onayladım. Saniyeler içinde satıcı aktif oldu. Artık ürün listeleyebilir, sipariş alabilir."
+
+---
+
+### 4:00 – 5:00 · Para akışı (payout)
+
+**Tıkla:** Header → "Payouts"
 
 **Ekran:** Payouts tablosu (prep-demo.sh sayesinde dolu).
 
-**Söylenecek:**
-> "Payout ledger. Haftalık batch — admin tarihi seçer, Run payout dersiniz, tüm PENDING sub-order'ları satıcı bazında gruplayıp tek satıra çevirir. **Idempotent**: aynı periode tekrar bastırırsanız yeni satır gelmez, çünkü `(seller_id, period_start, period_end)` unique. Mark Paid butonuyla manual da geçirilebilir — gerçekte Iyzico veya banka API'yle hookladığında otomatik."
+**Söyle:**
 
-**Tıklama:** (Opsiyonel) "Run payout" butonuna bas, "No eligible sub-orders" mesajını göster — idempotency demo.
+> "Burası ödeme listesi. Trendyol'un mantığı: müşteriden para alındı ama satıcıya hemen verilmez — haftada bir veya 15 günde bir toplu ödeme yapılır.
+>
+> Ben de aynısını yaptım. Admin tarih aralığı seçer, 'Run payout' der, sistem o aralıktaki tüm siparişleri satıcı bazında toplayıp tek satırda gösterir.
+>
+> Mesela burada 'Bu hafta TechMart'a 4.500 TL ödeyeceğiz' yazıyor, içinde 8% komisyon düşülmüş hâlde.
+>
+> Bir özelliği daha var: aynı tarihi tekrar bastırmak istesem yeni satır oluşmuyor — kontrol var, çift ödeme olamıyor."
 
 ---
 
-### 5:00 – 6:00 · Saga görselleştirmesi (1dk) — **wow #1**
+### 5:00 – 6:00 · Bir siparişin yolculuğu (★)
 
-**Tıklama:** Tab 5 → Zipkin (http://localhost:9411).
+**Tıkla:** Zipkin sekmesi (http://localhost:9411)
 
-**Söylenecek:**
-> "Şimdi az önce attığım siparişin trace'ine bakalım. Zipkin'de search."
+**Söyle:**
 
-**Tıklama:** Service name → `api-gateway` → Run query → en son trace'i seç.
+> "Şimdi 'az önce verdiğim sipariş kim ne yaptı, ne kadar sürdü' sorusunu cevaplayan ekrana gelelim. Buna 'distributed tracing' deniyor."
+
+**Tıkla:** Service name: `api-gateway` → Run query → en son trace'i seç
 
 **Ekran:** Trace timeline.
 
-**Söylenecek:**
-> "Tek bir HTTP isteği 8 servisi geziyor. Gateway → order-service'in saga'sı → cart-service Feign call → inventory-service reservation → payment-service charge → seller-service commission lookup → outbox publisher → kafka producer. Her span'in timing'i var, bottleneck'i tespit etmek için yeterli. **OpenTelemetry + Micrometer Tracing**, gateway'de correlation ID enjekte ediliyor, log'larda da aynı traceId görünüyor."
+**Söyle:**
+
+> "Bakın, tek bir 'sipariş ver' butonu 8 farklı servisi geziyor:
+>
+> Önce gateway giriyor — yani trafik kapısı. Sonra sipariş servisi devreye giriyor.
+> Sepet servisinden cart bilgisini çekiyor.
+> Stok servisinden ürünü ayırıyor.
+> Ödeme servisini çağırıyor — Iyzico'ya istek gidiyor.
+> Satıcı servisinden komisyon oranını öğreniyor.
+> En son Kafka'ya bildirim mesajı atıyor.
+>
+> Hepsi sıralı, hepsi mili saniye düzeyinde ölçülüyor. Bir yerde gecikme olursa burada hemen görünüyor."
 
 ---
 
-### 6:00 – 7:00 · Observability (1dk) — "production-grade"
+### 6:00 – 7:00 · İzleme paneli
 
-**Tıklama:** Tab 4 → Grafana (admin/admin) → "Microservices Overview" dashboard.
+**Tıkla:** Grafana sekmesi → "Microservices Overview" dashboard
 
-**Söylenecek:**
-> "Grafana panelinde her servis için **RED metrikleri**: rate, errors, duration. Business counter'lar var: `orders.placed`, `orders.cancelled` reason tag'iyle, `coupon.redeemed`. Prometheus 13 servisten scrape ediyor, retention 15 günlük. Sağ üstte canlı throughput, soldaki panelde error rate, alttaki latency histogramları — production'a hazır gözleme katmanı."
+**Söyle:**
 
-**(Opsiyonel)** RabbitMQ tab'i: http://localhost:15672 (guest/guest) — "kuyruklar burada, DLQ var, idempotent consumer."
+> "Burası Grafana — production'da kullanılan izleme aracı.
+>
+> Sol üstte canlı istek sayısı: dakikada kaç istek geliyor.
+> Yanında hata oranı: ne kadar 4xx, 5xx dönüyoruz.
+> Altta gecikme grafikleri: en yavaş istek hangi servisteydi.
+>
+> Bunların hepsi Prometheus'tan geliyor. Her servis kendi metriklerini açıyor, Prometheus 15 saniyede bir çekiyor, Grafana çiziyor.
+>
+> Ek olarak iş metrikleri de var — kaç sipariş verildi, kaç tanesi iptal oldu, hangi sebeple iptal oldu. Bunları da business tarafı isteyebilir."
 
 ---
 
-### 7:00 – 7:45 · AI / MCP (45sn) — **wow #2**
+### 7:00 – 7:45 · Yapay zeka entegrasyonu (★)
 
-**Tıklama:** Claude Desktop / Claude Code'a geç.
+**Tıkla:** Claude Desktop / Claude Code'a geç
 
-**Söylenecek:**
-> "AI agent'leri için MCP server'ımız var, Spring AI ile yazıldı. recommendation-service üzerinde SSE endpoint, üç tool expose ediyor: `searchProducts`, `similarProducts`, `recommendForUser`. Claude bu tool'ları doğrudan çağırabilir."
+**Söyle:**
 
-**Klavyede yaz** (sadece bu kısımda):
+> "Bir bonus daha ekledim — projeye yapay zeka erişimi.
+>
+> Claude Desktop, Cursor gibi yapay zeka asistanları artık doğrudan benim ürünlerimi sorgulayabilir. 'MCP server' adında yeni bir standart kullandım."
+
+**Yaz:** (Claude'a)
 ```
 What headphones do you have under 2000 TRY?
 ```
 
-**Ekran:** Claude `searchProducts` tool'unu çağırır, sonuçları döner.
+**Ekran:** Claude `searchProducts` tool'unu çağırır, ürünleri listeler.
 
-**Söylenecek:**
-> "Yapay zeka agent'lerinin backend'imize entegre edilebilmesi için tasarladık — REST API'ler MCP tool'larına bind ediliyor. Cursor, Claude Desktop, Claude Code — hepsi bu server'a konuşabiliyor."
+**Söyle:**
 
----
-
-### 7:45 – 8:45 · Deploy story (1dk) — "tek komut"
-
-**Tıklama:** Terminal aç, README'yi göster.
-
-**Söylenecek:**
-> "Sıfırdan klon → `docker compose up --build` → 21 container ayakta. Her şey container'da: Postgres, Redis, RabbitMQ, Kafka, Prometheus, Grafana, Zipkin, 13 Spring servisi, frontend nginx. Frontend Buildx git-context'le başka repo'dan otomatik clone'lanıyor — host'ta JDK veya Node bile gerekmez."
-
-**Tıklama:** Tab 6 → GitHub → Actions sekmesi.
-
-**Söylenecek:**
-> "Her main push GHCR'a 14 image basıyor — Jib ile, multi-arch ARM64+AMD64. Slack webhook'u var, success/failure'a notification. Üç compose dosyası var: default'da source'tan build, prod'da GHCR'dan pull, infra-only dev için. AWS Beanstalk için de `aws/` klasöründe RDS+ElastiCache'li deploy bundle hazır."
+> "Bakın, ben 'hangi kulaklık var 2000 liranın altında' diye sordum, Claude direkt benim siteme bağlandı, ürünleri çekti, listeledi.
+>
+> Yarın yapay zekanın e-ticaret platformlarına nasıl bağlanacağı konusunda öncü bir özellik bu. Şu an sadece arama, benzer ürün ve öneri var ama genişletilebilir."
 
 ---
 
-### 8:45 – 9:30 · Phase log (45sn) — "kapsamlı geçmiş"
+### 7:45 – 8:45 · Nasıl çalıştırılır
 
-**Tıklama:** README → Roadmap tablosu.
+**Tıkla:** Terminal aç, README'yi göster.
 
-**Söylenecek:**
-> "Proje 13 phase'de gelişti. Phase 0–12: foundation, JWT, catalog, cart, saga, RabbitMQ, Kafka outbox, observability, AI/MCP, reactive layer, idempotency + caching, CI/CD. Phase 13'te marketplace'i V1'den V4'e kademeli ekledim — V1 seller domain, V2 listing-aware cart, V3 sub-orders + commission, V4 reviews + payouts + returns + storefront. Her milestone git tag'ı, geri-dönülebilir branch."
+**Söyle:**
+
+> "Projeyi en güzel yanı: tek komutla çalışıyor.
+>
+> Yeni biri repo'yu klonlasın, `docker compose up --build` desin, 10 dakika içinde 21 container ayağa kalkıyor:
+> - 13 backend servisi
+> - Frontend
+> - Veritabanı, cache, mesaj kuyrukları, izleme araçları
+>
+> Bilgisayara hiçbir şey kurmasına gerek yok — Java da, Maven da, Node da yok. Hepsi Docker içinde."
+
+**Tıkla:** GitHub → Actions sekmesi.
+
+**Söyle:**
+
+> "Ayrıca her main branch'a push'ladığımda otomatik build çalışıyor — GitHub'ın kendi sistemi (Actions). Image'lar otomatik üretilip GitHub'ın container kayıtçısına atılıyor. Sunucuya da tek komutla deploy edilebiliyor.
+>
+> AWS Elastic Beanstalk için ayrı bir deploy paketi de hazırladım — `aws/` klasöründe."
 
 ---
 
-### 9:30 – 10:00 · Kapanış (30sn)
+### 8:45 – 9:30 · Geçmiş
 
-**Tıklama:** README üstüne dön.
+**Tıkla:** README → Roadmap tablosu.
 
-**Söylenecek:**
-> "Test'ler 80+, CI yeşil. README'de tam bring-up rehberi, mimari diyagramı, troubleshooting bölümü var. GitHub'da repo public — link açıklamada. Sorular için müsaitim, teşekkürler."
+**Söyle:**
+
+> "Proje 13 ayrı aşamada büyüdü:
+>
+> 1. baştan 12'ye kadar: temel altyapı, kullanıcı girişi, ürün listesi, sepet, sipariş, ödeme, mesajlaşma, izleme, yapay zeka.
+> 2. 13. aşamada marketplace'e dönüştü: dört adımda eklendi — önce satıcı kayıtları, sonra sepetin satıcıya bağlanması, sonra para akışının ayrılması, en son yorumlar ve iadeler.
+>
+> Her aşama için git'te ayrı tag bıraktım — istediğim noktaya geri dönebilirim."
 
 ---
 
-## Zorlukla karşılaşırsan
+### 9:30 – 10:00 · Kapanış
 
-| Sorun | Hızlı çözüm |
+**Tıkla:** README üstüne dön.
+
+**Söyle:**
+
+> "Son olarak: 80'in üzerinde test var, hepsi otomatik koşuyor. README'de tüm kurulum adımları yazıyor. Github linki açıklamada.
+>
+> Soru ve geri bildiriminize açığım, teşekkür ederim."
+
+---
+
+## Sorun çıkarsa
+
+| Sorun | Çözüm |
 |---|---|
-| Tab açıkken sayfa boş | Hard reload (`Cmd+Shift+R`), service worker'ı drop eder |
-| Storefront görseller yüklenmiyor | `API_URL=http://localhost node scripts/seed/backfill-images.js` |
-| Demo paneli "Invalid credentials" | seed.js çalıştırılmamış: `./docs/demo/prep-demo.sh` |
-| Order placement 503 "no instance" | Eureka cache hot değil, 30sn bekle |
-| Gateway → seller-service 503 | seller-service yeni restart edildi, 30sn bekle |
-| Iyzico key set'liyse ama hata veriyor | sandbox panel'inde test kartı kullan: `5528790000000008` |
+| Site açılmıyor | `docker compose ps` — hangi servis kırmızı? |
+| Görseller yok | `node scripts/seed/backfill-images.js` |
+| Login olmuyor | seed atılmamış: `./docs/demo/prep-demo.sh` |
+| Order verince 503 | 30 saniye bekle (servis kayıtları güncellensin) |
 
-## Voice-over taktiği
+## Voice-over taktikleri
 
-- **80% script'ten oku**, %20 doğaçlama. Hazır cümleler "ee, şey, hmm" sayısını düşürür.
-- "Burada şunu yaptık" yerine "**Burada şu kararı verdim:**" — değer yaratan ifade.
-- Code mention'larında her zaman **niye o kararı verdiğini söyle**, ne kullandığını değil. "Saga kullandım" değil, "Distributed transaction'ı **synchronous saga** ile çözdüm çünkü 7 servis arası inventory + payment + commit + outbox aynı request'in compensation path'lerini paylaşmalı."
-- Mülakatçı kafanın hangi seviyede olduğunu anlamak istiyor. Tek seviye derinlikten daha derine inme — özet → bir somut detay → bir trade-off.
-- 30 saniye → 10 saniye — eğer bir bölüm tıkanırsan voice-over kayıtta kısalt.
+- **Yavaş konuş.** "Hızlı ve düzgün" yerine "yavaş ama akıcı" çok daha iyi izleniyor.
+- **"Şu an buradayım, şuraya geçiyorum"** — yönlendirme bilgisi izleyiciyi rahatlatır.
+- **"Şimdi şuna dikkat edin..."** — wow moment'ten önce vurgu yap.
+- "Mesela", "yani", "bakın" gibi konuşkan kelimeler doğal hissettirir, mülakatçı senaryo okuduğunu anlamaz.
+- **Sayı ezberleme.** "8 servis" yerine "yaklaşık on tane" dersen daha akıcı.
+- Bir şeyi atlamak gerekirse "şimdi onu geçiyorum" demek "uhh" demekten iyi.
 
 ## Kayıttan SONRA
 
 ```bash
-# Stack'i kapat (data tutmak istiyorsan -v koyma)
-docker compose down -v
+docker compose down -v   # data temizliği
 ```
 
-İyi şanslar 🎬
+Başarılar 🎬
