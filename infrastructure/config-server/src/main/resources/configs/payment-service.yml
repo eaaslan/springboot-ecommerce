@@ -20,3 +20,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+# Iyzico — set IYZICO_API_KEY / IYZICO_SECRET_KEY env vars to enable real calls.
+# When unset (blank), the service silently falls back to its built-in mock so the
+# stack still boots end-to-end without a sandbox account.
+iyzico:
+  api-key: ${IYZICO_API_KEY:}
+  secret-key: ${IYZICO_SECRET_KEY:}
+  base-url: ${IYZICO_BASE_URL:https://sandbox-api.iyzipay.com}

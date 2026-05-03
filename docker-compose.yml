@@ -239,6 +239,11 @@ services:
     environment:
       <<: *spring-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/paymentdb
+      # Provide IYZICO_API_KEY / IYZICO_SECRET_KEY in the host shell or .env
+      # to enable real Iyzico sandbox calls. Otherwise the service stays in mock mode.
+      IYZICO_API_KEY: ${IYZICO_API_KEY:-}
+      IYZICO_SECRET_KEY: ${IYZICO_SECRET_KEY:-}
+      IYZICO_BASE_URL: ${IYZICO_BASE_URL:-https://sandbox-api.iyzipay.com}
     depends_on:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
