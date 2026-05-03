@@ -1,0 +1,14 @@
+{
+  "name": "ecommerce-seed",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node seed.js",
+    "seed:wipe": "node seed.js --wipe",
+    "seed:big": "node seed.js --products 100 --buyers 20 --sellers 8"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.0.0"
+  }
+}

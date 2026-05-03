@@ -53,20 +53,22 @@ services:
       retries: 10
 
   kafka:
-    image: bitnami/kafka:3.7
+    image: apache/kafka:3.8.0
     environment:
-      KAFKA_CFG_NODE_ID: "1"
-      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
-      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
-      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "controller,broker"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
       interval: 15s
       retries: 15
 
@@ -124,6 +126,10 @@ services:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
       redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 10s
+      retries: 30
 
   user-service:
     <<: *spring-app-defaults
@@ -199,6 +205,29 @@ services:
       config-server: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
       postgres: { condition: service_healthy }
+
+  # Marketplace V1+ — multi-seller. Needs sellerdb (created by docker/postgres/init.sql).
+  seller-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-seller-service:${IMAGE_TAG:-latest}
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  # React + Vite SPA served by nginx; nginx also reverse-proxies /api → api-gateway
+  # so the browser only ever talks to one origin (no CORS, JWT cookie/header flows
+  # naturally). 'image:' is the production target (CD pipeline in the FE repo
+  # publishes it). 'build:' is the local-dev fallback — runs when you pass
+  # --build to docker compose, expecting the FE repo at ../springboot-ecommerce-frontend.
+  frontend:
+    image: ghcr.io/eaaslan/ecommerce-frontend:${IMAGE_TAG:-latest}
+    build:
+      context: ../springboot-ecommerce-frontend
+    ports: ["80:80"]
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    restart: unless-stopped
 
 volumes:
   pg-data:

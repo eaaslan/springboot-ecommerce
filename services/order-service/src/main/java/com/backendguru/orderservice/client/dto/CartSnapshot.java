@@ -12,5 +12,29 @@ public record CartSnapshot(
       BigDecimal priceAmount,
       String priceCurrency,
       int quantity,
-      BigDecimal lineTotal) {}
+      BigDecimal lineTotal,
+      Long listingId,
+      Long sellerId,
+      String sellerName) {
+
+    /** Convenience constructor for non-marketplace lines (tests + legacy paths). */
+    public CartItemSnapshot(
+        Long productId,
+        String productName,
+        BigDecimal priceAmount,
+        String priceCurrency,
+        int quantity,
+        BigDecimal lineTotal) {
+      this(
+          productId,
+          productName,
+          priceAmount,
+          priceCurrency,
+          quantity,
+          lineTotal,
+          null,
+          null,
+          null);
+    }
+  }
 }

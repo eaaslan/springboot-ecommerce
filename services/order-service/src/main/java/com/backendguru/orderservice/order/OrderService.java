@@ -14,6 +14,9 @@ import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
 import com.backendguru.orderservice.exception.PaymentFailedException;
 import com.backendguru.orderservice.exception.SagaException;
+import com.backendguru.orderservice.marketplace.SubOrder;
+import com.backendguru.orderservice.marketplace.SubOrderRepository;
+import com.backendguru.orderservice.marketplace.SubOrderSplitter;
 import com.backendguru.orderservice.observability.OrderMetrics;
 import com.backendguru.orderservice.order.dto.OrderResponse;
 import com.backendguru.orderservice.order.dto.PlaceOrderRequest;
@@ -49,6 +52,8 @@ public class OrderService {
   private final OutboxAppender outboxAppender;
   private final OrderMetrics metrics;
   private final CouponService couponService;
+  private final SubOrderSplitter subOrderSplitter;
+  private final SubOrderRepository subOrderRepository;
 
   public OrderResponse placeOrder(Long userId, PlaceOrderRequest req) {
     return metrics.placeOrderTimer().record(() -> placeOrderInternal(userId, req));
@@ -146,7 +151,11 @@ public class OrderService {
         throw new SagaException("Inventory commit failed", ex);
       }
 
-      // 6. Mark CONFIRMED + record coupon redemption + write outbox row in the SAME transaction
+      // 6. Split into per-seller sub-orders BEFORE the final save so sub_order_id cascades
+      //    onto each order_items row in the same flush.
+      subOrderSplitter.split(order);
+
+      // 6b. Mark CONFIRMED + record coupon redemption + write outbox row in the SAME transaction
       order.setStatus(OrderStatus.CONFIRMED);
       order = orderRepository.save(order);
       if (order.getCouponCode() != null) {
@@ -170,7 +179,8 @@ public class OrderService {
             ex);
       }
 
-      return OrderResponse.from(order);
+      List<SubOrder> subs = subOrderRepository.findByOrderId(order.getId());
+      return OrderResponse.from(order, subs);
     } catch (SagaException | InventoryUnavailableException | PaymentFailedException e) {
       throw e;
     } catch (RuntimeException unexpected) {
@@ -198,7 +208,7 @@ public class OrderService {
       // Avoid leaking existence; return 404 instead of 403.
       throw new ResourceNotFoundException("Order " + orderId + " not found");
     }
-    return OrderResponse.from(order);
+    return OrderResponse.from(order, subOrderRepository.findByOrderId(order.getId()));
   }
 
   @Transactional(readOnly = true)
@@ -237,6 +247,9 @@ public class OrderService {
               .priceAmount(ci.priceAmount())
               .priceCurrency(ci.priceCurrency())
               .quantity(ci.quantity())
+              .listingId(ci.listingId())
+              .sellerId(ci.sellerId())
+              .sellerName(ci.sellerName())
               .build();
       order.addItem(oi);
     }
@@ -247,7 +260,10 @@ public class OrderService {
   @Transactional
   protected void markCancelled(Order order, String reason) {
     order.setStatus(OrderStatus.CANCELLED);
-    order.setFailureReason(reason);
+    // failure_reason column is VARCHAR(255) — truncate so a long stack message
+    // doesn't crash the compensation step itself.
+    order.setFailureReason(
+        reason == null ? null : reason.substring(0, Math.min(reason.length(), 250)));
     orderRepository.save(order);
     metrics.incrementCancelled(classifyReason(reason));
   }

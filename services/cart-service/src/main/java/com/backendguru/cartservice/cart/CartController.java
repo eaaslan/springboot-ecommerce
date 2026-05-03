@@ -34,7 +34,9 @@ public class CartController {
   public ApiResponse<CartResponse> addItem(
       Authentication auth, @Valid @RequestBody AddItemRequest req) {
     return ApiResponse.success(
-        CartResponse.from(service.addItem(currentUserId(auth), req.productId(), req.quantity())));
+        CartResponse.from(
+            service.addItem(
+                currentUserId(auth), req.productId(), req.quantity(), req.listingId())));
   }
 
   @PatchMapping("/items/{productId}")

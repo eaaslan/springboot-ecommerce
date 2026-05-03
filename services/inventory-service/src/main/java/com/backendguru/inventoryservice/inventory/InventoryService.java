@@ -17,6 +17,26 @@ public class InventoryService {
   private final InventoryItemRepository itemRepository;
   private final ReservationRepository reservationRepository;
 
+  /**
+   * Idempotent inventory create — used by the seed script for new master products. If an
+   * inventory_items row already exists for that productId, returns the existing one unchanged.
+   */
+  @Transactional
+  public InventoryStatusResponse upsert(Long productId, int availableQty) {
+    InventoryItem item =
+        itemRepository
+            .findByProductId(productId)
+            .orElseGet(
+                () -> {
+                  InventoryItem fresh = new InventoryItem();
+                  fresh.setProductId(productId);
+                  fresh.setAvailableQty(availableQty);
+                  fresh.setReservedQty(0);
+                  return itemRepository.save(fresh);
+                });
+    return InventoryStatusResponse.from(item);
+  }
+
   @Transactional
   public ReservationResponse reserve(ReserveRequest req) {
     InventoryItem item =

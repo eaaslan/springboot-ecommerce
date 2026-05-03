@@ -1,0 +1,14 @@
+**/target/
+**/.idea/
+**/.vscode/
+**/*.iml
+**/.git/
+**/.gitignore
+**/node_modules/
+**/dist/
+**/.DS_Store
+README.md
+docs/
+.github/
+scripts/seed/node_modules/
+docker-compose*.yml

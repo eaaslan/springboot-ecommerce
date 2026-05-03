@@ -26,6 +26,8 @@ import com.backendguru.orderservice.event.OrderEventPublisher;
 import com.backendguru.orderservice.exception.InventoryUnavailableException;
 import com.backendguru.orderservice.exception.PaymentFailedException;
 import com.backendguru.orderservice.exception.SagaException;
+import com.backendguru.orderservice.marketplace.SubOrderRepository;
+import com.backendguru.orderservice.marketplace.SubOrderSplitter;
 import com.backendguru.orderservice.observability.OrderMetrics;
 import com.backendguru.orderservice.order.dto.PlaceOrderRequest;
 import com.backendguru.orderservice.outbox.OutboxAppender;
@@ -54,6 +56,8 @@ class OrderServiceTest {
   @Mock OrderEventPublisher eventPublisher;
   @Mock OutboxEventRepository outboxRepository;
   @Mock OutboxAppender outboxAppender;
+  @Mock SubOrderSplitter subOrderSplitter;
+  @Mock SubOrderRepository subOrderRepository;
 
   @org.mockito.Spy OrderMetrics metrics = new OrderMetrics(new SimpleMeterRegistry());
 

@@ -53,4 +53,18 @@ public class OrderItem {
 
   @Column(name = "reservation_id")
   private Long reservationId;
+
+  // Marketplace V2 — nullable. When present, this line came from a specific seller offer.
+  @Column(name = "listing_id")
+  private Long listingId;
+
+  @Column(name = "seller_id")
+  private Long sellerId;
+
+  @Column(name = "seller_name", length = 120)
+  private String sellerName;
+
+  /** FK → sub_orders.id; populated by SubOrderSplitter after the order is created. */
+  @Column(name = "sub_order_id")
+  private Long subOrderId;
 }
