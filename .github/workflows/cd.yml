@@ -35,15 +35,22 @@ jobs:
         id: owner
         run: echo "lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Build images and push to GHCR (Jib)
+      - name: Compile and install all modules (incl. shared/common) to local m2
+        run: mvn -B -ntp -DskipTests install
+
+      - name: Build images and push to GHCR (Jib, services only)
         env:
           JIB_USER: ${{ github.actor }}
           JIB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMAGE_OWNER: ${{ steps.owner.outputs.lower }}
         run: |
+          # Image name (ghcr.io/eaaslan/ecommerce-<artifactId>) lives in the
+          # parent pom's <pluginManagement>; Maven substitutes ${project.artifactId}
+          # per module. Don't override via -Djib.to.image= — system properties are
+          # literal strings and Maven won't interpolate them.
+          # shared/common is excluded — it's a JAR library, not a service.
           mvn -B -ntp -DskipTests \
+            -pl '!shared/common' \
             -Djib.to.auth.username="$JIB_USER" \
             -Djib.to.auth.password="$JIB_TOKEN" \
-            -Djib.to.image="ghcr.io/$IMAGE_OWNER/ecommerce-\${project.artifactId}" \
             -Djib.to.tags="${{ github.sha }},latest" \
-            compile jib:build
+            jib:build
