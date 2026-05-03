@@ -4,7 +4,38 @@ A production-grade Spring Boot 3 / Spring Cloud 2024 microservice e-commerce pla
 
 **Status:** 13 deployable services, 14 Maven modules, ~80 tests, full CI/CD via GitHub Actions, single-command deployment via `docker compose`.
 
-> **Frontend repository:** [`eaaslan/springboot-ecommerce-frontend`](https://github.com/eaaslan/springboot-ecommerce-frontend) — React 18 + Vite, plain CSS, fetch-based client with refresh-token rotation. Containerised with nginx; the same `docker-compose.prod.yml` here brings it up.
+> **Frontend repository:** [`eaaslan/springboot-ecommerce-frontend`](https://github.com/eaaslan/springboot-ecommerce-frontend) — React 18 + Vite, plain CSS. The compose stack here pulls and builds it automatically; you don't need to clone it.
+
+---
+
+## TL;DR — try it in one command
+
+Every dependency lives inside containers. From a fresh clone:
+
+```bash
+git clone https://github.com/eaaslan/springboot-ecommerce.git
+cd springboot-ecommerce
+docker compose up --build
+```
+
+That's it. The first run builds 13 backend services and the React frontend
+(~6–10 minutes on a fast laptop) and brings up Postgres, Redis, RabbitMQ,
+Kafka, Prometheus, Grafana, and Zipkin. When everything reports healthy, open:
+
+- **`http://localhost`** — the storefront (nginx serves the SPA + reverse-proxies `/api`)
+- `http://localhost:8080/api/products` — gateway directly
+- `http://localhost:8761` — Eureka registry
+- `http://localhost:9090` / `http://localhost:3000` (admin/admin) / `http://localhost:9411` — Prometheus / Grafana / Zipkin
+
+To populate the catalog with realistic demo data (60 products with images, 5 sellers, reviews, orders):
+
+```bash
+cd scripts/seed && npm install && node seed.js
+```
+
+Then log in at `http://localhost` as **`alice@example.com`** / **`password123`** (admin) or any seeded `buyer1..8@example.com` / `password123`.
+
+**Stop:** `docker compose down`   **Stop and wipe data:** `docker compose down -v`
 
 ---
 
@@ -102,112 +133,72 @@ Cross-cutting infrastructure: **config-server (8888)**, **discovery-server (Eure
 
 ---
 
-## Quick start
+## Running the stack
 
 ### Prerequisites
 
-| Tool | Version |
+| Tool | When you need it |
 |---|---|
-| Docker | 24+ with Compose v2 |
-| JDK (only for Option B) | 21 (Temurin or Homebrew OpenJDK) |
-| Maven (only for Option B) | 3.9+ |
-| Node.js (only for Option B / seed) | 20+ |
+| Docker 24+ with Compose v2 | Always |
+| JDK 21, Maven 3.9+ | Only for the IDE / hot-reload dev loop |
+| Node.js 20+ | Only to run the demo data seed |
 
-You also need **the frontend repository cloned as a sibling directory** if you want the compose to build the frontend image locally:
+That's it. Docker handles everything else (the Maven build runs *inside* the build container, the frontend repo is cloned by Buildx automatically).
 
-```
-~/IdeaProjects/
-├── springboot-ecommerce/             ← this repo
-└── springboot-ecommerce-frontend/    ← React + Vite SPA
-```
+### Default mode — full stack from one compose file
 
-### Option A — One-command Docker stack (recommended)
-
-This is the production-like topology: everything in containers, accessed at `http://localhost` (port 80, served by nginx which also reverse-proxies `/api`).
-
-#### A.1 First time, before any image is on GHCR
-
-If your CD pipeline hasn't published images yet, build everything **locally** with one round of Jib (backend) + one Docker build (frontend), then bring up:
+`docker-compose.yml` is self-contained. It builds every backend service from this repo via the root `Dockerfile`, and clones + builds the frontend straight from GitHub via Buildx git-context. No GHCR login, no sibling repo, no Maven on your machine.
 
 ```bash
-# 1. Backend: build all 13 service images straight into the local Docker daemon (Jib).
-#    No Dockerfile needed; this takes ~3 minutes the first time.
-./mvnw -B -DskipTests \
-       -Djib.to.image='eaaslan/ecommerce-${project.artifactId}' \
-       -Djib.to.tags=latest \
-       -Djib.dockerClient.environment.DOCKER_HOST="$DOCKER_HOST" \
-       compile jib:dockerBuild
+git clone https://github.com/eaaslan/springboot-ecommerce.git
+cd springboot-ecommerce
 
-# 2. Tell compose those locally-tagged images count as the GHCR ones it expects.
-#    (Quick way: re-tag.)
-for svc in api-gateway config-server discovery-server user-service product-service \
-           cart-service inventory-service payment-service order-service \
-           notification-service recommendation-service catalog-stream-service \
-           seller-service; do
-  docker tag eaaslan/ecommerce-$svc:latest ghcr.io/eaaslan/ecommerce-$svc:latest
-done
+# First time: ~6–10 minutes (Maven dependency download + 13-service build).
+docker compose up --build
 
-# 3. Bring up the stack — the --build flag makes compose build the frontend image.
-docker compose -f docker-compose.prod.yml up -d --build
-
-# 4. Wait ~60 s, then open the storefront:
-open http://localhost
+# Open http://localhost when the logs settle (~60 s after the build finishes).
 ```
 
-#### A.2 Subsequent times, when CI has pushed images to GHCR
-
-Once `marketplace-v1` is merged to `main` (and the frontend repo's `main` push has run), every service image lives at `ghcr.io/eaaslan/ecommerce-<artifact-id>:latest`. Then:
+What's in there: 7 infrastructure containers (Postgres, Redis, RabbitMQ, Kafka, Prometheus, Grafana, Zipkin) + 13 Spring Boot services + the React/nginx frontend. Subsequent runs reuse layer cache and start in seconds.
 
 ```bash
-docker login ghcr.io -u <your-github-user> -p <PAT-with-read:packages>
+docker compose down       # stop, keep data
+docker compose down -v    # stop and wipe Postgres + Redis volumes
+docker compose up         # restart (no rebuild needed if code unchanged)
+docker compose up --build # restart and rebuild after code changes
+```
+
+To populate realistic demo data after the stack is up:
+
+```bash
+cd scripts/seed && npm install && node seed.js
+# 60 products with images, 5 sellers, ~120 listings, ~30 reviews, ~4 orders
+```
+
+### Production deployment — pull pre-built images instead
+
+`docker-compose.prod.yml` is the same topology but pulls images from GHCR instead of building locally — this is what you run on a real server once CI has published the images.
+
+```bash
+docker login ghcr.io -u <user> -p <PAT-with-read:packages>   # only if private
 docker compose -f docker-compose.prod.yml up -d
-open http://localhost
 ```
 
-#### Bring it down
+### IDE / hot-reload mode — just the infra in Docker
+
+`docker-compose.infra.yml` brings up only Postgres, Redis, Kafka, RabbitMQ, Prometheus, Grafana, Zipkin. Run the Spring services from your IDE for fast inner-loop development:
 
 ```bash
-docker compose -f docker-compose.prod.yml down       # keep data
-docker compose -f docker-compose.prod.yml down -v    # also wipe Postgres / Redis volumes
-```
+docker compose -f docker-compose.infra.yml up -d
 
-### Option B — Hybrid: infra in Docker, services on host
-
-This is the **fastest inner loop for development** — IDE-friendly, hot-reloadable.
-
-```bash
-# 1. Bring up just the infrastructure (Postgres, Redis, RabbitMQ, Kafka, Prometheus, Grafana, Zipkin).
-docker compose up -d
-# (this uses docker-compose.yml — no Spring services in here)
-
-# 2. In separate terminals, run the Spring services in dependency order:
 ./mvnw -pl infrastructure/config-server     spring-boot:run
 ./mvnw -pl infrastructure/discovery-server  spring-boot:run
 ./mvnw -pl services/user-service            spring-boot:run
-./mvnw -pl services/product-service         spring-boot:run
-./mvnw -pl services/inventory-service       spring-boot:run
-./mvnw -pl services/payment-service         spring-boot:run
-./mvnw -pl services/cart-service            spring-boot:run
-./mvnw -pl services/seller-service          spring-boot:run     # marketplace
-./mvnw -pl services/order-service           spring-boot:run
-./mvnw -pl services/notification-service    spring-boot:run
-./mvnw -pl services/recommendation-service  spring-boot:run
-./mvnw -pl services/catalog-stream-service  spring-boot:run
-./mvnw -pl infrastructure/api-gateway       spring-boot:run
+# … and the rest, in any order
 
-# 3. Frontend in another terminal (separate repo):
-cd ../springboot-ecommerce-frontend
-npm install        # one-time
-npm run dev        # http://localhost:5173 with HMR
-```
-
-The frontend's `client.js` defaults to `VITE_API_URL=http://localhost:8080` when no env var is set, so the dev server hits the gateway directly. CORS is permitted for `http://localhost:5173` at the gateway.
-
-To wipe data while developing:
-
-```bash
-docker compose down -v   # drops every Postgres database, Redis cache, Kafka log
-docker compose up -d     # Flyway re-creates schemas on next service boot
+# Frontend in a separate terminal (separate repo, must be cloned)
+cd ../springboot-ecommerce-frontend && npm install && npm run dev
+# http://localhost:5173 with hot reload
 ```
 
 ---
@@ -449,17 +440,29 @@ After both CI runs complete on `main`, **`docker compose -f docker-compose.prod.
 
 ## Production deployment notes
 
-For an actual deploy (Oracle Cloud Ampere A1, AWS EC2, or any VM):
+For an actual VM deploy (Oracle Cloud Ampere A1, AWS EC2, Hetzner, …):
 
-1. Create a VM with at least 4 GB RAM (8 GB recommended for Kafka + Grafana + 13 services); Ampere ARM64 works because every image is multi-arch
-2. Install Docker + Compose v2
-3. Clone **both repos** as siblings or pre-pull the GHCR images and skip the `build:` directive
-4. Provide a `JWT_SECRET` env var (32+ bytes hex)
-5. Optionally set `SLACK_ENABLED=true SLACK_WEBHOOK_URL=...` to wire order-confirmation notifications
-6. Front the gateway with a reverse proxy that terminates TLS (nginx or Caddy on the host); the in-stack nginx already handles same-origin proxying
-7. Persist `pg-data` on a non-ephemeral volume
+1. **VM:** at least 4 GB RAM (8 GB comfortable for the full stack), 30 GB disk, Ubuntu 22.04. Ampere ARM64 works because every image is multi-arch.
+2. **Install Docker + Compose v2**: `curl -fsSL https://get.docker.com | sh; sudo usermod -aG docker $USER`
+3. **Clone the repo and bring up the stack** with one command (the same one you'd run locally):
+   ```bash
+   git clone https://github.com/eaaslan/springboot-ecommerce.git
+   cd springboot-ecommerce
+   echo "JWT_SECRET=$(openssl rand -hex 32)" > .env
+   docker compose --env-file .env up -d --build
+   ```
+4. Or **pull pre-built images** from GHCR (faster on the server, requires `docker login ghcr.io`):
+   ```bash
+   docker compose -f docker-compose.prod.yml --env-file .env up -d
+   ```
+5. **TLS:** put Caddy in front of the in-stack nginx (port 80) for automatic Let's Encrypt:
+   ```caddyfile
+   shop.example.com { reverse_proxy localhost:80 }
+   ```
+6. **Backups:** cron a daily `docker exec ... pg_dumpall` on the `pg-data` volume.
+7. **Optional:** `SLACK_ENABLED=true SLACK_WEBHOOK_URL=...` to wire order-confirmation notifications.
 
-The full operator checklist lives in [`docs/production-hardening.md`](docs/production-hardening.md): secrets, TLS, JWT rotation, dependency scanning, backup, observability rules, runbooks.
+The full operator checklist lives in [`docs/production-hardening.md`](docs/production-hardening.md): secrets, JWT rotation, dependency scanning, observability rules, runbooks.
 
 ---
 
@@ -467,8 +470,10 @@ The full operator checklist lives in [`docs/production-hardening.md`](docs/produ
 
 ```
 springboot-ecommerce/
-├── docker-compose.yml              # Just infra (Option B)
-├── docker-compose.prod.yml         # Full stack incl. frontend (Option A)
+├── docker-compose.yml              # Default: build everything from source (one command)
+├── docker-compose.prod.yml         # Same topology but pulls images from GHCR
+├── docker-compose.infra.yml        # Just infra (for IDE / hot-reload dev loop)
+├── Dockerfile                      # Generic backend image template — MODULE arg picks the service
 ├── pom.xml                         # Multi-module Maven root
 ├── docker/
 │   ├── postgres/init.sql           # Per-service DB + user creation

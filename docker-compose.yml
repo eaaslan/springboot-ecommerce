@@ -1,111 +1,297 @@
-# Local development stack.
-# Populated incrementally per phase.
+# Self-contained, single-command stack.
+#
+# Anyone can clone this repo and run:
+#
+#     docker compose up --build
+#
+# That's it. No JDK, Maven, Node, or sibling repo required. The Dockerfile at
+# the repo root builds every backend service in one Maven pass; the frontend
+# is built straight from its GitHub repo via Buildx git-context.
+#
+# The first run takes ~6-10 minutes (mostly Maven downloading dependencies
+# inside the build container). Subsequent runs reuse Docker layer cache.
+#
+# Open http://localhost once everything reports healthy.
+
+x-spring-app-defaults: &spring-app-defaults
+  environment: &spring-env
+    SPRING_PROFILES_ACTIVE: docker
+    EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888"
+    JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+UseG1GC"
+  depends_on:
+    config-server: { condition: service_healthy }
+    discovery-server: { condition: service_healthy }
+  restart: unless-stopped
+  logging: &default-logging
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-build-context: &build-context
+  context: .
+  dockerfile: Dockerfile
+
 services:
+  # -------------------- Infrastructure (no build) --------------------
+
   postgres:
     image: postgres:16-alpine
-    container_name: ecommerce-postgres
     environment:
       POSTGRES_DB: userdb
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
-    ports:
-      - "5432:5432"
     volumes:
       - pg-data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d userdb"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 10s
       retries: 10
+    logging: *default-logging
 
   redis:
     image: redis:7-alpine
-    container_name: ecommerce-redis
-    ports:
-      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 10s
       retries: 10
+    logging: *default-logging
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: ecommerce-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+    ports: ["15672:15672"]   # management UI
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
+      interval: 15s
       retries: 10
-
-  prometheus:
-    image: prom/prometheus:v2.55.0
-    container_name: ecommerce-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"]
-      interval: 10s
-      retries: 10
-
-  grafana:
-    image: grafana/grafana:11.3.0
-    container_name: ecommerce-grafana
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-    volumes:
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
-    depends_on:
-      - prometheus
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  zipkin:
-    image: openzipkin/zipkin:3
-    container_name: ecommerce-zipkin
-    ports:
-      - "9411:9411"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9411/health || exit 1"]
-      interval: 10s
-      retries: 10
+    logging: *default-logging
 
   kafka:
     image: apache/kafka:3.8.0
-    container_name: ecommerce-kafka
-    ports:
-      - "9092:9092"
     environment:
-      KAFKA_NODE_ID: 1
+      KAFKA_NODE_ID: "1"
       KAFKA_PROCESS_ROLES: "controller,broker"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
       KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
-      interval: 10s
+      interval: 15s
       retries: 15
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    ports: ["9090:9090"]
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on: [prometheus]
+    logging: *default-logging
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    ports: ["9411:9411"]
+    logging: *default-logging
+
+  # -------------------- Spring Cloud control plane --------------------
+
+  config-server:
+    build:
+      <<: *build-context
+      args:
+        MODULE: infrastructure/config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health/readiness || exit 1"]
+      interval: 10s
+      retries: 30
+    restart: unless-stopped
+    logging: *default-logging
+
+  discovery-server:
+    build:
+      <<: *build-context
+      args:
+        MODULE: infrastructure/discovery-server
+    ports: ["8761:8761"]
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888"
+    depends_on:
+      config-server: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health/readiness || exit 1"]
+      interval: 10s
+      retries: 30
+    restart: unless-stopped
+    logging: *default-logging
+
+  # -------------------- Edge --------------------
+
+  api-gateway:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: infrastructure/api-gateway
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 10s
+      retries: 30
+
+  # -------------------- Services --------------------
+
+  user-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/user-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  product-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/product-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  cart-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/cart-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  inventory-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/inventory-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  payment-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/payment-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  order-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/order-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+
+  notification-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/notification-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+
+  recommendation-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/recommendation-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+
+  catalog-stream-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/catalog-stream-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  seller-service:
+    <<: *spring-app-defaults
+    build:
+      <<: *build-context
+      args:
+        MODULE: services/seller-service
+    depends_on:
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+  # -------------------- Frontend --------------------
+  # Builds straight from GitHub — no sibling repo or submodule needed.
+  # Buildx git-context automatically clones the FE repo at build time.
+  frontend:
+    build:
+      context: https://github.com/eaaslan/springboot-ecommerce-frontend.git#main
+    ports: ["80:80"]
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   pg-data:
