@@ -9,6 +9,7 @@ public record ProductSummary(
     String sku,
     String name,
     String description,
+    String imageUrl,
     BigDecimal priceAmount,
     String priceCurrency,
     int stockQuantity,
