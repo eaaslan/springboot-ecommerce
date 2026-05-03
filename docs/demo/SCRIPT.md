@@ -63,45 +63,56 @@ olsun.
 
 **Söyle:**
 
-> "Burada her servis ayrı bir iş yapıyor — kullanıcı, ürün, sepet, sipariş,
-> ödeme, satıcı, bildirim gibi.
+> "Her servis ayrı bir işten sorumlu — kullanıcı, ürün, sepet, sipariş,
+> ödeme, satıcı, bildirim gibi. Birbirinden bağımsız çalışıyorlar, her
+> birinin kendi veritabanı var.
 >
-> Birkaçı özel: **recommendation** öneri motoru, hem siteye hem MCP
-> üzerinden yapay zekaya servis veriyor. **catalog-stream** WebFlux ile
-> reactive bir okuma katmanı.
+> Birkaçı biraz farklı: **recommendation** öneri motoru — hem siteye
+> 'sana özel' önerileri o veriyor, hem de MCP üzerinden Claude gibi
+> yapay zeka asistanlarına aynı servis bağlanıyor. **catalog-stream** ise
+> WebFlux ile yazılmış bir okuma servisi, yüksek trafikte performans
+> kaybetmiyor.
 >
-> Her servisin kendi unit ve integration testleri var — toplam 80+ test,
-> CI pipeline'ında otomatik koşuyor. Postgres ihtiyacı olan testler
-> Testcontainers ile gerçek DB üzerinde çalışıyor."
+> Test tarafında her servisin kendi unit ve integration testleri var —
+> toplamda 80 küsür test, CI'da otomatik koşuyor. Veritabanı isteyen
+> testler için Testcontainers kullanıyorum, yani test sırasında gerçek
+> Postgres ayağa kalkıyor, mock'la kandırmıyor."
 
 **Tıkla:** `infrastructure/` klasörü.
 
 **Söyle:**
 
-> "API gateway, Eureka discovery, config server. Servislerin önündeki
-> altyapı katmanı."
+> "Burada API gateway, Eureka discovery ve config server var.
+> Servislerin önünde duran altyapı katmanı — gateway dışarıdan gelen
+> isteklerin tek giriş kapısı, JWT kontrolü orada."
 
 **Tıkla:** `shared/common/`
 
 **Söyle:**
 
-> "Ortak DTO'lar, error model, correlation filter. Tekrar etmesin diye
-> ortak kütüphane."
+> "Tüm servislerin paylaştığı küçük bir kütüphane — ortak DTO'lar,
+> hata mesajı formatı, log filter'ları. Her serviste tekrar yazmamak
+> için."
 
 **Tıkla:** Kök klasördeki 3 compose dosyasını göster.
 
 **Söyle:**
 
-> "Üç compose dosyası: `docker-compose.yml` source'tan build edip her
-> şeyi ayağa kaldırır, `prod.yml` GHCR'dan image çeker, `infra.yml`
-> sadece bağımlılıkları açar IDE'de geliştirirken kullanıyorum."
+> "Üç tane compose dosyası var:
+> **`docker-compose.yml`** ana dosya, klonlayıp tek komutla her şeyi
+> kaynaktan build edip kaldırıyor. **`prod.yml`** sunucuda kullanılıyor,
+> bu sefer build etmiyor, GHCR'dan hazır image çekiyor. **`infra.yml`**
+> ben IDE'de geliştirirken — sadece veritabanı, Redis, Kafka gibi
+> bağımlılıkları açıyor, servisleri kendim çalıştırıyorum."
 
 **Tıkla:** `aws/` ve `docs/` klasörlerini hızlıca göster.
 
 **Söyle:**
 
-> "`aws/` Beanstalk deploy paketi. `docs/` dokümantasyon ve API
-> koleksiyonu. Şimdi canlı akışa geçelim."
+> "`aws/` AWS Beanstalk için ayrı deploy paketi — RDS ve ElastiCache'e
+> bağlı bir compose dosyası, adım adım rehber. `docs/` içinde
+> dokümantasyon, demo scripti, API koleksiyonu. Şimdi canlı kullanmaya
+> geçelim."
 
 ---
 
@@ -118,14 +129,16 @@ olsun.
 
 **Söyle:**
 
-> "Ana sayfa. n11/Trendyol mantığında çoklu satıcı buy-box'ı var —
-> en uygun teklif kart üzerinde."
+> "Ana sayfa. n11/Trendyol mantığında çoklu satıcı yapısı var —
+> aynı ürünü farklı satıcılar farklı fiyata satabiliyor, sistem en
+> uygun teklifi seçip kart üzerinde gösteriyor. Buy-box mantığı."
 
 **Söyle (Recommended for you bandının altındayken kısa):**
 
-> "Üstte 'Recommended for you' — recommendation servisinden, basit
-> içerik tabanlı benzerlik algoritması. Aynı servis daha sonra MCP
-> üzerinden Claude'a da açılacak."
+> "Üstte 'Recommended for you' bandı var — bu öneriler recommendation
+> servisinden geliyor, kullanıcının baktığı kategoriye göre içerik
+> tabanlı benzerlik hesaplıyor. Az sonra göstereceğim, aynı servis MCP
+> üzerinden Claude'a da bağlanıyor."
 
 **Tıkla:** Listing'li bir ürünü aç.
 
@@ -138,10 +151,16 @@ olsun.
 
 **Söyle (yavaş):**
 
-> "Bu tıklamayla saga başlıyor: cart fetch, Iyzico'da kart authorization,
-> stok rezervasyonu, sub-order split, outbox event, Kafka publish.
-> Adımların herhangi biri patlarsa compensation devreye giriyor — refund
-> + reservation release."
+> "Bu tıklamayla arkada saga başlıyor. Sırasıyla: sepet bilgisi
+> çekiliyor, Iyzico'ya kart gönderilip authorize ediliyor, stok
+> ayrılıyor, sipariş satıcı başına ayrı sub-order'lara bölünüyor —
+> her satıcının komisyonu ve net ödenecek tutarı ayrı hesaplanıyor.
+> En sonunda Kafka'ya bir event atılıyor, bunu bildirim servisi
+> tüketiyor.
+>
+> Önemli kısım: bir adımda hata olursa compensation devreye giriyor.
+> Mesela ödeme reddedilirse, ayrılan stok serbest bırakılıyor,
+> sipariş iptal ediliyor — yarım kalmış bir sipariş bırakmıyoruz."
 
 **Tıkla:** Order detail'in "Per-seller breakdown" kısmı.
 
@@ -183,10 +202,17 @@ olsun.
 
 **Söyle:**
 
-> "Payout ledger — haftalık batch. Admin period seçer, sistem o aralıktaki
-> PENDING sub-orderları satıcı bazında aggregate eder. UNIQUE
-> `(seller_id, period_start, period_end)` olduğu için run idempotent —
-> aynı period'u tekrar bastırınca yeni satır oluşmuyor."
+> "Burası ödeme defteri — payout ledger. Trendyol mantığı: müşteriden
+> para alındı ama satıcıya hemen ödenmez, haftalık batch'lerle toplu
+> ödeniyor.
+>
+> Admin tarih aralığı seçer, 'Run payout' der, sistem o aralıktaki
+> PENDING sub-orderları satıcı bazında toplayıp tek satır çıkarıyor —
+> 'TechMart'a bu hafta 4500 TL ödenecek' gibi.
+>
+> Idempotent yazdım: aynı tarihi tekrar bastırırsam yeni satır
+> oluşmuyor, çünkü `(seller_id, period_start, period_end)` üzerinde
+> unique constraint var. Çift ödeme imkansız."
 
 ---
 
@@ -196,11 +222,14 @@ olsun.
 
 **Söyle:**
 
-> "Az önce attığım siparişin Zipkin trace'i. Tek istek 8 spans:
-> gateway, order-service, cart, inventory, payment, seller (commission
-> lookup), outbox publisher, Kafka producer. OpenTelemetry +
-> Micrometer Tracing köprüsü, gateway'de correlation ID propagate
-> ediyor."
+> "Az önce verdiğim siparişin Zipkin trace'ine bakalım. Tek bir checkout
+> isteği 8 farklı servisi geziyor — gateway, order-service, sepet, stok,
+> ödeme, satıcı (komisyon için), outbox, Kafka. Hepsinin timing'i burada
+> görünüyor.
+>
+> Altyapı tarafında OpenTelemetry + Micrometer Tracing var, gateway
+> her isteğe correlation ID ekliyor, log'larda da aynı ID akıyor —
+> bir hata olursa istemden log'a kadar takip edilebiliyor."
 
 ---
 
@@ -210,10 +239,13 @@ olsun.
 
 **Söyle:**
 
-> "Grafana — RED metrikleri (rate, errors, duration) her servis için.
-> Business counter'lar da var: orders.placed, orders.cancelled (reason
-> tag'iyle), coupon.redeemed. Prometheus 13 servisten 15s'de scrape
-> ediyor."
+> "Grafana paneli. Her servis için RED metrikleri — yani saniyedeki
+> istek sayısı, hata oranı, gecikme. Prometheus 13 servisten 15
+> saniyede bir metrik çekip burada gösteriyor.
+>
+> İş tarafı için ekstra sayaçlar da var: kaç sipariş verildi, kaç
+> tanesi iptal oldu ve hangi sebeple, kaç kupon kullanıldı. Business
+> tarafının görmek isteyeceği şeyler."
 
 ---
 
@@ -223,9 +255,9 @@ olsun.
 
 **Söyle:**
 
-> "Recommendation servisi aynı zamanda MCP server expose ediyor —
-> Spring AI ile, SSE üzerinden. searchProducts, similarProducts,
-> recommendForUser tool'ları."
+> "Bonus özellik — biraz önce bahsettiğim recommendation servisi aynı
+> zamanda MCP sunucusu. Spring AI ile yazıldı, SSE üzerinden çalışıyor.
+> Üç tool açıyor: ürün arama, benzer ürünler, kullanıcıya öneri."
 
 **Yaz:**
 ```
@@ -234,8 +266,12 @@ What headphones do you have under 2000 TRY?
 
 **Söyle:**
 
-> "Claude tool'u çağırdı, gerçek katalogtan dönüş geldi. AI agent'larının
-> backend'lere bağlanma standardı — REST'i MCP'ye bind ettim."
+> "Bakın, 'hangi kulaklık var 2000 liranın altında' diye sordum, Claude
+> doğrudan benim katalogtan çekti, listeledi. Gerçek bir tool çağrısı.
+>
+> AI agent'ların backend'lere bağlanma standardı MCP — REST API'lerimi
+> tool olarak expose ettim, Claude/Cursor/Claude Code aynı şekilde
+> kullanabiliyor."
 
 ---
 
@@ -245,19 +281,25 @@ What headphones do you have under 2000 TRY?
 
 **Söyle:**
 
-> "Sıfırdan klon → `docker compose up --build` → 21 container.
-> 13 backend, frontend, Postgres, Redis, RabbitMQ, Kafka, Prometheus,
-> Grafana, Zipkin. Host'ta JDK/Node yok, hepsi Buildx + Maven container
-> içinde."
+> "Projenin en güzel yanı: tek komutla çalışıyor. Yeni biri repo'yu
+> klonlasın, `docker compose up --build` desin, 10 dakika içinde 21
+> container ayağa kalkıyor. 13 backend servisi, frontend, Postgres,
+> Redis, RabbitMQ, Kafka ve izleme araçları. Host'ta Java veya Node
+> bile gerekmez — Maven build container içinde, frontend Buildx ile
+> başka repo'dan otomatik geliyor."
 
 **Tıkla:** GitHub → Actions
 
 **Söyle:**
 
-> "GitHub Actions: her main push Jib ile multi-arch image basıyor, GHCR'a
-> atıyor. Slack webhook'u success/failure'da notification gönderiyor.
-> AWS Beanstalk için RDS + ElastiCache'li ayrı deploy paketi `aws/`
-> klasöründe."
+> "Her main branch'a push'ladığımda GitHub Actions otomatik build
+> çalıştırıyor. Image'ları Jib ile multi-arch şekilde — yani hem ARM
+> hem x86 için — üretip GHCR'a yüklüyor. Slack webhook'u tanımlandıysa
+> başarılı veya başarısız her deploy'da bildirim gidiyor.
+>
+> AWS tarafında da yer var: `aws/` klasöründe Beanstalk için ayrı bir
+> deploy paketi hazırladım — RDS ve ElastiCache'e bağlı, adım adım
+> rehberle birlikte."
 
 ---
 
@@ -267,11 +309,15 @@ What headphones do you have under 2000 TRY?
 
 **Söyle:**
 
-> "13 phase'de büyüdü. Phase 0-12 foundation: auth, catalog, cart, saga,
-> RabbitMQ, Kafka outbox, observability, Spring AI. Phase 13'te
-> marketplace V1-V4: seller domain, listing-aware cart, sub-orders +
-> commission, reviews + payouts + returns. Her milestone git tag,
-> reversible branch."
+> "Proje 13 aşamada büyüdü. İlk 12 aşama altyapı: auth, ürün kataloğu,
+> sepet, saga, RabbitMQ + Kafka outbox, observability, Spring AI.
+>
+> 13. aşamada marketplace eklendi, dört adımda: önce satıcı kayıtları
+> ve listing'ler, sonra sepetin satıcıya bağlanması, sonra sub-order
+> ayrıştırması ve komisyon hesabı, en son yorumlar + payout + iadeler.
+>
+> Her aşama için git'te tag bıraktım, geri-dönülebilir bir
+> branch'te tuttum — beğenmezsem tek komutla geri alırım."
 
 ---
 
@@ -281,8 +327,10 @@ What headphones do you have under 2000 TRY?
 
 **Söyle:**
 
-> "80+ test, CI yeşil. README'de bring-up rehberi, mimari diyagramı,
-> troubleshooting var. GitHub linki açıklamada. Sorulara açığım."
+> "Son olarak: 80'in üzerinde test var, CI'da hepsi otomatik koşuyor.
+> README'de baştan sona kurulum rehberi, mimari diyagramı, sık
+> karşılaşılan sorunların çözümleri var. GitHub linki açıklamada.
+> Sorulara açığım, dinlediğiniz için teşekkürler."
 
 ---
 
