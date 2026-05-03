@@ -36,15 +36,16 @@ CVC: `123` · Exp: `12/2030` · Holder: herhangi bir isim
 | Saat | Bölüm |
 |---|---|
 | 0:00 | Açılış |
-| 0:30 | Müşteri (login → cart → checkout) |
-| 2:30 | Marketplace (apply → admin approve) |
+| 0:20 | Proje yapısı (IDE) |
+| 1:30 | Müşteri akışı (login → cart → checkout) |
+| 3:00 | Marketplace (apply → admin approve) |
 | 4:00 | Payout |
-| 5:00 | **Zipkin trace ★** |
-| 6:00 | Grafana |
-| 7:00 | **MCP / Claude ★** |
-| 7:45 | Deploy story |
-| 8:45 | Phase log |
-| 9:30 | Kapanış |
+| 4:45 | **Zipkin trace ★** |
+| 5:45 | Grafana |
+| 6:30 | **MCP / Claude ★** |
+| 7:15 | Deploy story |
+| 8:00 | Phase log |
+| 9:00 | Kapanış |
 
 ## Konuşmada kaçınılacaklar
 

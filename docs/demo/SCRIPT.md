@@ -1,7 +1,7 @@
 # 10 dakikalık demo videosu — basit anlatım
 
 Mülakat için sade, anlaşılır bir tanıtım. Konuşma dili, kısa cümleler.
-**İlk 2 dakika proje yapısı**, sonrası canlı demo.
+**İlk 1.5 dakika proje yapısı**, sonrası canlı demo.
 
 ## Kayıttan ÖNCE
 
@@ -50,110 +50,64 @@ olsun.
 
 ---
 
-### 0:20 – 2:00 · Proje yapısı turu (yeni)
+### 0:20 – 1:30 · Proje yapısı
 
 **Tıkla:** IDE'de proje köküne git.
 
 **Söyle:**
 
-> "Proje iki ana parçadan oluşuyor. Backend Spring Boot ile yazıldı,
-> frontend React. İkisi ayrı repository'de. Şimdi backend'in içine bakalım."
+> "Proje iki ayrı repository'den oluşuyor — backend Spring Boot, frontend
+> React. Şimdi backend'in içine bakalım, kabaca neresinde ne var?"
 
-**Tıkla:** `services/` klasörünü aç.
-
-**Söyle:**
-
-> "Burası kalbi. 11 ayrı backend servisi var. Her biri tek bir işi
-> yapıyor:
->
-> - **user-service** kullanıcı kaydı, login, token üretiyor.
-> - **product-service** ürün kataloğu, fiyat, stok.
-> - **cart-service** müşterinin sepetini tutuyor — bu Redis'te, çünkü
->   sepet hızlı değişen bir şey, kalıcı veritabanı yerine bellekte.
-> - **inventory-service** stok takibi, sipariş anında ürünü ayırma.
-> - **payment-service** ödeme — Iyzico'ya bağlandı.
-> - **order-service** sipariş akışını yönetiyor — burada saga var.
-> - **notification-service** sipariş onayı gibi mesajları gönderiyor.
-> - **recommendation-service** öneri motoru, ayrıca yapay zekaya da
->   açılıyor.
-> - **catalog-stream-service** alternatif hızlı okuma yolu.
-> - **seller-service** satıcı kayıtları, listemeleri, yorumlar.
->
-> 11 servis çok gibi görünebilir ama mantığı şu: bir kısmı çökerse
-> diğerleri çalışmaya devam ediyor. Mesela ödeme servisi kapansa
-> ürün gezme akışı bozulmuyor. Buna **microservice** mimarisi deniyor.
-> Aslında bu büyüklükte bir proje için fazlasıyla detaylı, tek monolith
-> uygulama da yeterdi. Ben **microservice'i öğrenmek için** bilinçli
-> olarak bu yapıyı seçtim."
-
-**Tıkla:** `infrastructure/` klasörünü aç.
+**Tıkla:** `services/` klasörünü aç (tek tek alt klasörlere girme, sadece üst seviyeyi göster).
 
 **Söyle:**
 
-> "Burada 3 yardımcı servis var. Bunlar asıl iş yapmıyor ama servislerin
-> birbirini bulmasını sağlıyor:
->
-> - **api-gateway** dışarıdan gelen tüm isteklerin tek giriş kapısı.
->   JWT kontrolü burada, sonra hangi servise gideceği burada
->   kararlaştırılıyor.
-> - **discovery-server** hangi servis nerede çalışıyor haritası.
->   Eureka kullandım — Spring'in standart aracı.
-> - **config-server** bütün servislerin ayar dosyaları burada
->   toplanıyor."
+> "Burası ana iş klasörü. Her bir alt klasör tek bir işten sorumlu ayrı
+> bir program — kullanıcı yönetimi, ürün, sepet, sipariş, ödeme, satıcı,
+> bildirim gibi. Bunlara microservice deniyor, hepsi birbirinden
+> bağımsız çalışıyor."
 
-**Tıkla:** `shared/common/` klasörünü aç.
+**Tıkla:** `infrastructure/` klasörü.
 
 **Söyle:**
 
-> "Tüm servisler aynı yardımcı kodu kullanıyor — hata mesajı formatı,
-> response zarfı, log filter'ları. Tekrar tekrar yazmamak için ortak bir
-> kütüphaneye topladım. Burada duruyor."
+> "Burada 3 altyapı servisi var. Bunlar iş yapmıyor, servislerin
+> birbirini bulmasını ve trafiği yönetmesini sağlıyorlar."
 
-**Tıkla:** Kök klasördeki üç compose dosyasını göster:
-`docker-compose.yml`, `docker-compose.prod.yml`, `docker-compose.infra.yml`.
+**Tıkla:** `shared/common/`
 
 **Söyle:**
 
-> "Üç tane compose dosyası var, niye olduğunu açıklayayım — sıkça
-> sorulan bir soru:
->
-> **`docker-compose.yml`** ana dosya. Birisi repo'yu klonlar, tek komut
-> der: `docker compose up --build`. Hiçbir şey kurmasına gerek yok, 10
-> dakikada her şey ayağa kalkıyor.
->
-> **`docker-compose.prod.yml`** sunucuya deploy ederken kullanılıyor —
-> bu sefer kod build etmiyor, GitHub'tan hazır image'ları çekiyor. Çok
-> daha hızlı.
->
-> **`docker-compose.infra.yml`** geliştirme için. Sadece veritabanı, cache
-> gibi altyapıyı açıyor, servisleri ben IDE'den çalıştırıyorum. Kodu
-> değiştirip test ederken çok pratik."
+> "Tüm servisler ortak küçük bir kütüphane kullanıyor — hata mesajı
+> formatı, log filter'ları gibi tekrar etmesin diye buraya topladım."
 
-**Tıkla:** `aws/` klasörünü aç.
+**Tıkla:** Kök klasördeki 3 compose dosyasını göster.
 
 **Söyle:**
 
-> "AWS'te de çalışsın diye ayrı bir deploy paketi var. RDS ve ElastiCache
-> kullanan farklı bir compose dosyası, Beanstalk ayarları, adım adım
-> rehber."
+> "Üç tane compose dosyası var:
+>
+> - **`docker-compose.yml`** ana dosya. Birisi repo'yu klonlar, tek komut der,
+>   her şey çalışır.
+> - **`docker-compose.prod.yml`** sunucuya deploy ederken — GitHub'tan hazır
+>   image'ları çekiyor, daha hızlı.
+> - **`docker-compose.infra.yml`** ben kodu IDE'de yazarken kullandığım — sadece
+>   veritabanı gibi altyapıyı açıyor, servisleri kendim çalıştırıyorum."
 
-**Tıkla:** `docs/` klasörünü aç.
+**Tıkla:** `aws/` ve `docs/` klasörlerini hızlıca göster.
 
 **Söyle:**
 
-> "Dokümanlar burada — README, üretim ortamı kontrol listesi, demo
-> scripti, hatta API koleksiyonu. `scripts/seed/` altında demo verisi
-> üreten Node script'leri var."
-
-**Söyle (toparla):**
-
-> "Kısacası: 11 backend servisi, 3 altyapı servisi, ortak kütüphane,
-> üç farklı senaryoda çalışan compose dosyaları, AWS deploy paketi
-> ve dokümantasyon. Şimdi siteyi canlı kullanırken anlatmaya başlayalım."
+> "`aws` klasöründe AWS Beanstalk için ayrı deploy paketi var. `docs`
+> içinde dokümantasyon, kurulum rehberi, demo scripti ve API koleksiyonu.
+>
+> Kısacası: birkaç bağımsız servis, ortak altyapı, farklı senaryolar için
+> compose dosyaları, deploy paketleri. Şimdi canlı kullanmaya geçelim."
 
 ---
 
-### 2:00 – 3:30 · Müşteri akışı
+### 1:30 – 3:00 · Müşteri akışı
 
 **Tıkla:** Tarayıcı → `/demo` sekmesi → "Buyer #1" → "Login"
 
@@ -202,7 +156,7 @@ olsun.
 
 ---
 
-### 3:30 – 4:30 · Satıcı olma akışı
+### 3:00 – 4:00 · Satıcı olma akışı
 
 **Tıkla:** Header → "Become a Seller"
 
@@ -226,7 +180,7 @@ olsun.
 
 ---
 
-### 4:30 – 5:15 · Para akışı
+### 4:00 – 4:45 · Para akışı
 
 **Tıkla:** Header → "Payouts"
 
@@ -244,7 +198,7 @@ olsun.
 
 ---
 
-### 5:15 – 6:15 · Bir siparişin yolculuğu (★)
+### 4:45 – 5:45 · Bir siparişin yolculuğu (★)
 
 **Tıkla:** Zipkin sekmesi → service: `api-gateway` → Run query → en son trace
 
@@ -266,7 +220,7 @@ olsun.
 
 ---
 
-### 6:15 – 7:00 · İzleme paneli
+### 5:45 – 6:30 · İzleme paneli
 
 **Tıkla:** Grafana → "Microservices Overview"
 
@@ -283,7 +237,7 @@ olsun.
 
 ---
 
-### 7:00 – 7:45 · Yapay zeka entegrasyonu (★)
+### 6:30 – 7:15 · Yapay zeka entegrasyonu (★)
 
 **Tıkla:** Claude Desktop / Claude Code'a geç
 
@@ -308,7 +262,7 @@ What headphones do you have under 2000 TRY?
 
 ---
 
-### 7:45 – 8:30 · Nasıl çalıştırılır
+### 7:15 – 8:00 · Nasıl çalıştırılır
 
 **Tıkla:** Terminal → README
 
@@ -328,7 +282,7 @@ What headphones do you have under 2000 TRY?
 
 ---
 
-### 8:30 – 9:15 · Geçmiş
+### 8:00 – 9:00 · Geçmiş
 
 **Tıkla:** README → Roadmap
 
@@ -344,7 +298,7 @@ What headphones do you have under 2000 TRY?
 
 ---
 
-### 9:15 – 10:00 · Kapanış
+### 9:00 – 10:00 · Kapanış (geniş bırak)
 
 **Tıkla:** README üstüne dön
 
