@@ -1,0 +1,4 @@
+{
+  "AWSEBDockerrunVersion": "3",
+  "_comment": "Beanstalk Docker Compose platform (Amazon Linux 2023). The actual orchestration lives in docker-compose.aws.yml at the same directory; this file is a placeholder so the platform recognises the bundle. EB CLI uses 'eb deploy' which uploads the entire dir."
+}

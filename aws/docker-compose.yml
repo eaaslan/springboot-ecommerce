@@ -1,0 +1,168 @@
+# Beanstalk Docker Compose platform consumes this file at the application root.
+# It pulls every service image from GHCR and replaces the in-stack postgres/redis
+# with the RDS / ElastiCache endpoints supplied as environment variables.
+#
+# Provision before deploying:
+#   - RDS Postgres instance (multi-db; create per-service databases via init.sql or seed manually)
+#   - ElastiCache Redis cluster (single-node OK for free-tier-ish setups)
+#   - (Optional) MSK Kafka if you want event bus parity; the stack works without
+#     async events too — order saga is sync, only notifications miss out.
+#
+# Beanstalk env vars to set (Configuration → Software → Environment properties):
+#   POSTGRES_HOST=<rds-endpoint>     POSTGRES_PORT=5432
+#   POSTGRES_USER=ecommerce_admin    POSTGRES_PASSWORD=<from-Secrets-Manager>
+#   REDIS_HOST=<elasticache-endpoint>
+#   JWT_SECRET=<32-byte-hex>
+#   IYZICO_API_KEY=<sandbox-...>     IYZICO_SECRET_KEY=<sandbox-...>
+#   IMAGE_TAG=latest                 (or a specific git sha)
+
+x-spring-app-defaults: &spring-app-defaults
+  environment: &spring-env
+    SPRING_PROFILES_ACTIVE: docker
+    EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888"
+    JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+UseG1GC"
+    SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+    SPRING_DATA_REDIS_PORT: "6379"
+    SPRING_RABBITMQ_HOST: rabbitmq
+    SPRING_RABBITMQ_PORT: "5672"
+    SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  restart: unless-stopped
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+
+  kafka:
+    image: apache/kafka:3.8.0
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "controller,broker"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+    restart: unless-stopped
+
+  config-server:
+    image: ghcr.io/eaaslan/ecommerce-config-server:${IMAGE_TAG:-latest}
+    environment:
+      SPRING_PROFILES_ACTIVE: "native,docker"
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
+    restart: unless-stopped
+
+  discovery-server:
+    image: ghcr.io/eaaslan/ecommerce-discovery-server:${IMAGE_TAG:-latest}
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888"
+    depends_on: [config-server]
+    restart: unless-stopped
+
+  api-gateway:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-api-gateway:${IMAGE_TAG:-latest}
+    depends_on: [config-server, discovery-server, redis]
+
+  user-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-user-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/userdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+  product-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-product-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/productdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+  cart-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-cart-service:${IMAGE_TAG:-latest}
+
+  inventory-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-inventory-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/inventorydb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+  payment-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-payment-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/paymentdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      IYZICO_API_KEY: ${IYZICO_API_KEY:-}
+      IYZICO_SECRET_KEY: ${IYZICO_SECRET_KEY:-}
+      IYZICO_BASE_URL: ${IYZICO_BASE_URL:-https://sandbox-api.iyzipay.com}
+
+  order-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-order-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/orderdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on: [config-server, discovery-server, rabbitmq, kafka]
+
+  notification-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-notification-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/notificationdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on: [config-server, discovery-server, rabbitmq, kafka]
+
+  recommendation-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-recommendation-service:${IMAGE_TAG:-latest}
+
+  catalog-stream-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-catalog-stream-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *spring-env
+      SPRING_R2DBC_URL: r2dbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/productdb
+      SPRING_R2DBC_USERNAME: ${POSTGRES_USER}
+      SPRING_R2DBC_PASSWORD: ${POSTGRES_PASSWORD}
+
+  seller-service:
+    <<: *spring-app-defaults
+    image: ghcr.io/eaaslan/ecommerce-seller-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/sellerdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+  frontend:
+    image: ghcr.io/eaaslan/ecommerce-frontend:${IMAGE_TAG:-latest}
+    ports: ["80:80"]
+    depends_on: [api-gateway]
+    restart: unless-stopped

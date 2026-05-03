@@ -39,6 +39,7 @@ jobs:
         run: mvn -B -ntp -DskipTests install
 
       - name: Build images and push to GHCR (Jib, services only)
+        id: jib
         env:
           JIB_USER: ${{ github.actor }}
           JIB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,3 +55,25 @@ jobs:
             -Djib.to.auth.password="$JIB_TOKEN" \
             -Djib.to.tags="${{ github.sha }},latest" \
             jib:build
+
+      - name: Notify Slack — success
+        if: success() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            -d '{
+              "text": ":rocket: *Deploy succeeded* — `${{ github.sha }}`\n*Author:* ${{ github.actor }}\n*Message:* ${{ github.event.head_commit.message }}\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+            }' \
+            "$SLACK_WEBHOOK_URL"
+
+      - name: Notify Slack — failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            -d '{
+              "text": ":x: *Deploy failed* — `${{ github.sha }}`\n*Author:* ${{ github.actor }}\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View logs>"
+            }' \
+            "$SLACK_WEBHOOK_URL"

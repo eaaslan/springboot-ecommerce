@@ -464,6 +464,26 @@ For an actual VM deploy (Oracle Cloud Ampere A1, AWS EC2, Hetzner, …):
 
 The full operator checklist lives in [`docs/production-hardening.md`](docs/production-hardening.md): secrets, JWT rotation, dependency scanning, observability rules, runbooks.
 
+### AWS Elastic Beanstalk
+
+A ready-to-deploy bundle lives under [`aws/`](aws/) — `docker-compose.yml` against
+RDS + ElastiCache, `.ebextensions/` hook to bootstrap per-service databases,
+end-to-end walkthrough in [`aws/AWS-DEPLOY.md`](aws/AWS-DEPLOY.md):
+
+```bash
+cd aws
+eb init ecommerce --platform "Docker running on 64bit Amazon Linux 2023"
+eb create ecommerce-prod --instance-type t3.large --single
+eb setenv POSTGRES_HOST=… REDIS_HOST=… JWT_SECRET=… IMAGE_TAG=latest
+eb deploy
+```
+
+### Slack notifications
+
+Set `SLACK_WEBHOOK_URL` repository secret and every successful or failed CD run
+posts a notification with commit sha, author, and a link to the run. Quiet
+when the secret is unset — no error, just skips.
+
 ---
 
 ## Project structure
