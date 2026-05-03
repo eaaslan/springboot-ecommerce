@@ -18,3 +18,7 @@ GRANT ALL PRIVILEGES ON DATABASE orderdb TO orderusr;
 CREATE USER notification WITH PASSWORD 'pass';
 CREATE DATABASE notificationdb OWNER notification;
 GRANT ALL PRIVILEGES ON DATABASE notificationdb TO notification;
+
+CREATE USER seller WITH PASSWORD 'pass';
+CREATE DATABASE sellerdb OWNER seller;
+GRANT ALL PRIVILEGES ON DATABASE sellerdb TO seller;
